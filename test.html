@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Google Sheet Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 15px;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Quản lý dữ liệu Google Sheet</h2>
+
+  <button onclick="loadSheetData()">📖 Hiển thị dữ liệu</button>
+  <button onclick="clearSheetData()">🗑 Xóa dữ liệu</button>
+
+  <table id="sheetData"></table>
+
+  <script>
+    // --- Config ---
+    const apiKey = "AIzaSyBCF4lFlZFecrRPCZPCoPJRaUB3ZPGK2kk"; // API Key của bạn
+    const spreadsheetId = "18ehCo3v-QeAyjEKump-ZffgsX2d2_Q2bljUaGvJvIK4"; // ID Sheet
+    const range = "sheet1!A2:F"; // Vùng cần lấy dữ liệu
+    const scriptURL = "https://script.google.com/macros/s/AKfycbw3ZbmPghaM5CEg8f2PgXGobBTJkdPadMzExHfhWNtaevNt8W3lxCt81vw2ZDtt_SnJ/exec"; // Apps Script Web App URL
+
+    // --- Load dữ liệu ---
+    async function loadSheetData() {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      const table = document.getElementById("sheetData");
+      table.innerHTML = "";
+
+      if (!data.values) {
+        table.innerHTML = "<tr><td>Không có dữ liệu</td></tr>";
+        return;
+      }
+
+      data.values.forEach((row, index) => {
+        const tr = document.createElement("tr");
+        row.forEach(cell => {
+          const td = document.createElement(index === 0 ? "th" : "td");
+          td.textContent = cell;
+          tr.appendChild(td);
+        });
+        table.appendChild(tr);
+      });
+    }
+
+    // --- Xóa dữ liệu ---
+    async function clearSheetData() {
+      if (!confirm("Bạn có chắc muốn xóa dữ liệu trong Sheet không?")) return;
+      try {
+        const res = await fetch(scriptURL);
+        const msg = await res.text();
+        alert("Kết quả: " + msg);
+        loadSheetData(); // load lại bảng sau khi xóa
+      } catch (err) {
+        alert("Lỗi khi xóa dữ liệu: " + err);
+      }
+    }
+  </script>
+
+</body>
+</html>

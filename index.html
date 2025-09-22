@@ -3,174 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style/style.css">
     <title>Quản lý lỗi</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 100%;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .form-section, .table-section {
-            width: 100%;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .form-section h4, .table-section h4 {
-            margin-top: 0;
-            color: #333;
-            font-size: 24px;
-        }
-        #contact-form {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        #contact-form input, #contact-form textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 18px;
-            box-sizing: border-box;
-        }
-        #contact-form textarea {
-            min-height: 120px;
-            resize: vertical;
-        }
-        #contact-form input[type="submit"] {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 18px;
-            width: fit-content;
-            align-self: flex-start;
-        }
-        #contact-form input[type="submit"]:hover {
-            background-color: #45a049;
-        }
-        .search-container {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-        }
-        #searchInput {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 18px;
-        }
-        #data-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        #data-table th, #data-table td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: left;
-            font-size: 16px;
-        }
-        #data-table th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        .error-message {
-            color: red;
-            margin-top: 10px;
-            font-size: 16px;
-        }
-        .pagination {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .pagination button {
-            padding: 8px 16px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background-color: #fff;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .pagination button:hover {
-            background-color: #f0f0f0;
-        }
-        .pagination button.active {
-            background-color: #4CAF50;
-            color: white;
-            border-color: #4CAF50;
-        }
-        .pagination button:disabled {
-            cursor: not-allowed;
-            opacity: 0.5;
-        }
-        .action-buttons {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-        }
-        .action-buttons button {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        #refreshButton {
-            background-color: #2196F3;
-            color: white;
-        }
-        #refreshButton:hover {
-            background-color: #1976D2;
-        }
-        #deleteButton {
-            background-color: #f44336;
-            color: white;
-        }
-        #deleteButton:hover {
-            background-color: #d32f2f;
-        }
-        #deleteButton:disabled {
-            background-color: #f44336;
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            .form-section, .table-section {
-                padding: 15px;
-            }
-            #contact-form input, #contact-form textarea, #searchInput {
-                font-size: 16px;
-            }
-            #contact-form input[type="submit"] {
-                width: 100%;
-            }
-            .action-buttons {
-                flex-direction: column;
-            }
-            .action-buttons button {
-                width: 100%;
-            }
-        }
-    </style>
+    <!-- Thêm thư viện SheetJS -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -178,21 +14,26 @@
         <div class="form-section">
             <h4>Nhập lỗi</h4>
             <form id="contact-form" name="contact-form">
+                <input type="text" name="id" id="id" placeholder="ID lỗi" required readonly="true">
+                <div id="id-preview" class="id-preview"></div>
                 <input type="text" name="issue" placeholder="Mô tả lỗi" required>
                 <input type="text" name="subject" placeholder="Tiêu đề mail" required>
                 <input type="text" name="why" placeholder="Vấn đề lỗi" required>
                 <textarea name="how" placeholder="Cách fix" required></textarea>
                 <input type="datetime-local" name="timestamp" id="timestamp" required>
-                <input type="submit" value="Gửi">
+                <div class="submit-container">
+                    <input type="submit" value="Gửi">
+                    <div id="loader" class="loader"></div>
+                </div>
             </form>
         </div>
 
         <!-- Bảng hiển thị và tìm kiếm -->
         <div class="table-section">
-            <h4>Dữ liệu từ Google Sheets</h4>
+            <h4>Dữ liệu đã lưu</h4>
             <div class="action-buttons">
                 <button id="refreshButton">Làm mới</button>
-                <button id="deleteButton" disabled>Xóa đã chọn</button>
+                <button id="exportButton">Xuất Excel</button>
             </div>
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Nhập từ khóa tìm kiếm...">
@@ -200,7 +41,12 @@
             <table id="data-table">
                 <thead>
                     <tr id="header">
-                        <th><input type="checkbox" id="selectAll"></th>
+                        <th>ID</th>
+                        <th>Mô tả lỗi</th>
+                        <th>Tiêu đề mail</th>
+                        <th>Vấn đề lỗi</th>
+                        <th>Cách fix</th>
+                        <th>Thời gian</th>
                     </tr>
                 </thead>
                 <tbody id="data"></tbody>
@@ -209,11 +55,12 @@
             <div id="pagination" class="pagination"></div>
         </div>
     </div>
+    <div id="notification" class="notification"></div>
 
     <script>
         const apiKey = 'AIzaSyBCF4lFlZFecrRPCZPCoPJRaUB3ZPGK2kk';
         const spreadsheetId = '18ehCo3v-QeAyjEKump-ZffgsX2d2_Q2bljUaGvJvIK4';
-        const range = 'sheet1!A1:E';
+        const range = 'sheet1!A1:F';
         const scriptURL = 'https://script.google.com/macros/s/AKfycbw3ZbmPghaM5CEg8f2PgXGobBTJkdPadMzExHfhWNtaevNt8W3lxCt81vw2ZDtt_SnJ/exec';
 
         let sheetData = [];
@@ -221,7 +68,51 @@
         const itemsPerPage = 10;
         let currentPage = 1;
 
-        // Set default timestamp to current date and time
+        // Hiển thị thông báo
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.backgroundColor = isError ? '#f44336' : '#4CAF50';
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Loader
+        function toggleLoader(show) {
+            document.getElementById('loader').style.display = show ? 'inline-block' : 'none';
+        }
+
+        // Tạo ID tự động
+        function generateAutoID(data) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const datePrefix = `${year}${month}${day}`;
+
+            const todayIDs = data.slice(1).filter(row => row[0] && row[0].startsWith(datePrefix)).map(row => row[0]);
+            let maxSerial = 0;
+            todayIDs.forEach(id => {
+                const serial = parseInt(id.slice(8), 10);
+                if (!isNaN(serial) && serial > maxSerial) {
+                    maxSerial = serial;
+                }
+            });
+
+            const nextSerial = String(maxSerial + 1).padStart(3, '0');
+            return `${datePrefix}${nextSerial}`;
+        }
+
+        function updateAutoID() {
+            const idInput = document.getElementById('id');
+            const idPreview = document.getElementById('id-preview');
+            const autoID = generateAutoID(sheetData);
+            idInput.value = autoID;
+            idPreview.textContent = `ID tiếp theo: ${autoID}`;
+        }
+
         function setDefaultTimestamp() {
             const now = new Date();
             const offset = now.getTimezoneOffset();
@@ -231,41 +122,25 @@
         }
 
         function displayData(data, page = 1) {
-            const headerRow = document.getElementById('header');
             const dataBody = document.getElementById('data');
             const errorDiv = document.getElementById('error');
             const paginationDiv = document.getElementById('pagination');
-            const deleteButton = document.getElementById('deleteButton');
-            const selectAllCheckbox = document.getElementById('selectAll');
 
-            headerRow.innerHTML = '<th><input type="checkbox" id="selectAll"></th>';
             dataBody.innerHTML = '';
             errorDiv.textContent = '';
             paginationDiv.innerHTML = '';
-            deleteButton.disabled = true;
 
-            if (data.length === 0) {
+            if (data.length === 0 || data.length === 1) {
                 errorDiv.textContent = 'Không tìm thấy dữ liệu phù hợp.';
                 return;
             }
 
-            // Hiển thị tiêu đề
-            data[0].forEach(cell => {
-                const th = document.createElement('th');
-                th.textContent = cell || '';
-                headerRow.appendChild(th);
-            });
-
-            // Tính toán phân trang
             const startIndex = (page - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
             const paginatedData = data.slice(1).slice(startIndex, endIndex);
 
-            // Hiển thị dữ liệu phân trang
-            paginatedData.forEach((row, index) => {
+            paginatedData.forEach((row) => {
                 const tr = document.createElement('tr');
-                const rowIndex = startIndex + index + 2; // Google Sheets row index (1-based, +1 for header)
-                tr.innerHTML = `<td><input type="checkbox" class="row-checkbox" data-row-index="${rowIndex}"></td>`;
                 row.forEach(cell => {
                     const td = document.createElement('td');
                     td.textContent = cell || '';
@@ -274,25 +149,6 @@
                 dataBody.appendChild(tr);
             });
 
-            // Xử lý checkbox chọn tất cả
-            selectAllCheckbox.addEventListener('change', () => {
-                const checkboxes = document.querySelectorAll('.row-checkbox');
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = selectAllCheckbox.checked;
-                });
-                deleteButton.disabled = !Array.from(checkboxes).some(checkbox => checkbox.checked);
-            });
-
-            // Xử lý checkbox từng dòng
-            dataBody.addEventListener('change', (e) => {
-                if (e.target.classList.contains('row-checkbox')) {
-                    const checkboxes = document.querySelectorAll('.row-checkbox');
-                    deleteButton.disabled = !Array.from(checkboxes).some(checkbox => checkbox.checked);
-                    selectAllCheckbox.checked = Array.from(checkboxes).every(checkbox => checkbox.checked);
-                }
-            });
-
-            // Tạo nút phân trang
             const totalPages = Math.ceil((data.length - 1) / itemsPerPage);
             if (totalPages > 1) {
                 const prevButton = document.createElement('button');
@@ -328,11 +184,14 @@
                 });
                 paginationDiv.appendChild(nextButton);
             }
+
+            updateAutoID();
         }
 
         async function fetchGoogleSheetData() {
             const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
             const errorDiv = document.getElementById('error');
+            toggleLoader(true);
 
             try {
                 const response = await fetch(url);
@@ -353,6 +212,8 @@
             } catch (error) {
                 console.error('Lỗi khi lấy dữ liệu:', error);
                 errorDiv.textContent = 'Lỗi khi tải dữ liệu từ Google Sheets. Vui lòng kiểm tra API Key hoặc kết nối.';
+            } finally {
+                toggleLoader(false);
             }
         }
 
@@ -371,97 +232,73 @@
             displayData(filteredData, currentPage);
         }
 
-        async function deleteSelectedRows() {
-            const checkboxes = document.querySelectorAll('.row-checkbox:checked');
-            const rowIndices = Array.from(checkboxes).map(checkbox => parseInt(checkbox.dataset.rowIndex));
-            if (rowIndices.length === 0) {
-                alert('Vui lòng chọn ít nhất một dòng để xóa.');
+        // Xuất dữ liệu ra Excel (xlsx)
+        function exportToExcel() {
+            if (!sheetData || sheetData.length === 0) {
+                showNotification("Không có dữ liệu để xuất!", true);
                 return;
             }
 
-            if (!confirm(`Bạn có chắc muốn xóa ${rowIndices.length} dòng đã chọn?`)) {
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+            XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+            XLSX.writeFile(wb, "data.xlsx");
+        }
+
+        const form = document.forms['contact-form'];
+        form.addEventListener('submit', async e => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const id = formData.get('id').trim();
+            if (!id) {
+                showNotification('ID lỗi không được để trống.', true);
                 return;
             }
 
+            toggleLoader(true);
             try {
                 const response = await fetch(scriptURL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'delete', rowIndices }),
-                    headers: { 'Content-Type': 'application/json' }
+                    body: formData
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-
-                const result = await response.json();
-                if (result.status === 'success') {
-                    alert('Xóa thành công!');
-                    await fetchGoogleSheetData(); // Reload data after deletion
-                } else {
-                    throw new Error(result.message || 'Lỗi khi xóa dữ liệu.');
-                }
-            } catch (error) {
-                console.error('Lỗi khi xóa:', error);
-                alert('Đã xảy ra lỗi khi xóa: ' + error.message);
-            }
-        }
-
-        // Xử lý gửi form
-        const form = document.forms['contact-form'];
-        form.addEventListener('submit', e => {
-            e.preventDefault();
-            const formData = new FormData(form);
-
-            fetch(scriptURL, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
                     throw new Error('Có lỗi khi gửi form. Mã lỗi: ' + response.status);
                 }
-                return response.json();
-            })
-            .then(data => {
-                alert("Cảm ơn bạn! Dữ liệu đã được gửi thành công: " + (data.message || 'Thành công'));
-                form.reset();
-                setDefaultTimestamp(); // Reset timestamp to current time after form submission
 
-                // Thêm dữ liệu mới vào sheetData và filteredData (nếu không có bộ lọc)
-                if (sheetData.length > 0) {
-                    const newRow = [
-                        formData.get('issue'),
-                        formData.get('subject'),
-                        formData.get('why'),
-                        formData.get('how'),
-                        formData.get('timestamp')
-                    ];
-                    sheetData.push(newRow);
-                    if (!document.getElementById('searchInput').value) {
-                        filteredData = sheetData; // Cập nhật filteredData nếu không tìm kiếm
-                    }
-                    displayData(filteredData, currentPage); // Hiển thị lại với trang hiện tại
-                } else {
-                    fetchGoogleSheetData(); // Nếu sheetData rỗng, gọi API để lấy tiêu đề
+                const data = await response.json();
+                showNotification('Dữ liệu đã được gửi thành công!');
+                form.reset();
+                setDefaultTimestamp();
+
+                const newRow = [
+                    formData.get('id'),
+                    formData.get('issue'),
+                    formData.get('subject'),
+                    formData.get('why'),
+                    formData.get('how'),
+                    formData.get('timestamp')
+                ];
+                sheetData.push(newRow);
+                if (!document.getElementById('searchInput').value) {
+                    filteredData = sheetData;
                 }
-            })
-            .catch(error => {
+                const newRowIndex = sheetData.length - 1;
+                currentPage = Math.ceil(newRowIndex / itemsPerPage);
+                displayData(filteredData, currentPage);
+            } catch (error) {
                 console.error('Lỗi!', error.message);
-                alert('Đã xảy ra lỗi: ' + error.message);
-            });
+                showNotification('Đã xảy ra lỗi: ' + error.message, true);
+            } finally {
+                toggleLoader(false);
+            }
         });
 
-        // Tìm kiếm ngay khi nhập
         document.getElementById('searchInput').addEventListener('input', searchTable);
-
-        // Xử lý nút làm mới
         document.getElementById('refreshButton').addEventListener('click', fetchGoogleSheetData);
+        document.getElementById('exportButton').addEventListener('click', exportToExcel);
 
-        // Xử lý nút xóa
-        document.getElementById('deleteButton').addEventListener('click', deleteSelectedRows);
-
-        // Gọi hàm lấy dữ liệu và set timestamp khi trang tải
         window.onload = () => {
             fetchGoogleSheetData();
             setDefaultTimestamp();
