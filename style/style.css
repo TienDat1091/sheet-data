@@ -1,0 +1,88 @@
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  font-size: 18px;
+}
+
+body {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #999;
+}
+
+.container {
+  width: 100%;
+  height: 100%;
+  padding: 40px;
+  border: none;
+  border-radius: 0;
+  background-color: #999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+h4 {
+  margin-bottom: 20px;
+  font-size: 32px;
+  color: white;
+  text-align: center;
+}
+
+input {
+  width: 100%;
+  padding: 15px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+textarea {
+  width: 100%;
+  padding: 15px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  min-height: 150px; /* Giống div[name="message"] */
+}
+
+/* CSS riêng cho input[name="message"] */
+input[name="message"] {
+  min-height: 150px; /* Tăng chiều cao giống textarea */
+  padding: 15px;
+  line-height: 1.5; /* Tạo không gian dòng giống textarea */
+  vertical-align: top; /* Căn chỉnh văn bản ở trên */
+  resize: none; /* Ngăn kéo giãn (giống textarea không cho resize) */
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+#submit {
+  border: none;
+  background-color: orangered;
+  color: white;
+  width: 200px;
+  padding: 15px;
+  margin: 20px auto;
+  border-radius: 5px;
+  display: block;
+  cursor: pointer;
+}
+
+#submit:hover {
+  background-color: #333333;
+}
+
+/* Xóa div[name="message"] vì không sử dụng */
+div[contenteditable][placeholder]:empty:before {
+  content: attr(placeholder);
+  color: #999;
+}
+
+
+
