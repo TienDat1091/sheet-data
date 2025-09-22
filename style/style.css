@@ -1,3 +1,4 @@
+/* Reset & body */
 body {
     margin: 0;
     padding: 20px;
@@ -15,7 +16,7 @@ body {
     gap: 20px;
 }
 
-/* Form & bảng */
+/* Form & Bảng */
 .form-section, .table-section {
     width: 100%;
     background-color: #fff;
@@ -40,8 +41,8 @@ body {
     flex-direction: column;
     gap: 15px;
 }
-#contact-form input, 
-#contact-form textarea, 
+#contact-form input,
+#contact-form textarea,
 #contact-form select {
     width: 100%;
     padding: 12px 14px;
@@ -51,8 +52,8 @@ body {
     box-sizing: border-box;
     transition: border 0.2s;
 }
-#contact-form input:focus, 
-#contact-form textarea:focus, 
+#contact-form input:focus,
+#contact-form textarea:focus,
 #contact-form select:focus {
     border-color: #4CAF50;
     outline: none;
@@ -73,7 +74,7 @@ body {
     transition: background-color 0.3s;
 }
 #contact-form input[type="submit"]:hover {
-    background-color: #43a047;
+    background-color: #388e3c;
 }
 .submit-container {
     display: flex;
@@ -101,10 +102,16 @@ body {
     border-color: #2196F3;
 }
 
+/* Table wrapper để tránh tràn */
+.table-section {
+    overflow-x: auto;
+}
+
 /* Bảng */
 #data-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed; /* quan trọng để xử lý tràn */
 }
 #data-table th, #data-table td {
     border: 1px solid #e0e0e0;
@@ -112,6 +119,8 @@ body {
     text-align: left;
     font-size: 15px;
     vertical-align: top;
+    word-break: break-word; /* ngắt từ khi quá dài */
+    white-space: pre-wrap;  /* giữ xuống dòng */
 }
 #data-table th {
     background-color: #f9f9f9;
@@ -124,11 +133,9 @@ body {
 #data-table tr:hover {
     background-color: #f1f8e9;
 }
+/* Điều chỉnh chiều rộng cột */
 #data-table th:nth-child(1), #data-table td:nth-child(1) { width: 80px; }
-#data-table th:nth-child(6), #data-table td:nth-child(6) {
-    min-width: 220px;
-    word-wrap: break-word;
-}
+#data-table th:nth-child(6), #data-table td:nth-child(6) { min-width: 220px; }
 
 /* Buttons */
 .action-buttons {
@@ -147,24 +154,12 @@ body {
     color: white;
     transition: background-color 0.3s;
 }
-#refreshButton {
-    background-color: #2196F3;
-}
-#refreshButton:hover {
-    background-color: #1976D2;
-}
-#exportButton {
-    background-color: #4CAF50;
-}
-#exportButton:hover {
-    background-color: #43a047;
-}
-#deleteButton {
-    background-color: #f44336;
-}
-#deleteButton:hover {
-    background-color: #d32f2f;
-}
+#refreshButton { background-color: #2196F3; }
+#refreshButton:hover { background-color: #1976D2; }
+#exportButton { background-color: #4CAF50; }
+#exportButton:hover { background-color: #388e3c; }
+#deleteButton { background-color: #f44336; }
+#deleteButton:hover { background-color: #d32f2f; }
 #deleteButton:disabled {
     background-color: #f44336;
     opacity: 0.5;
@@ -188,9 +183,7 @@ body {
     font-size: 14px;
     transition: background-color 0.3s;
 }
-.pagination button:hover {
-    background-color: #f0f0f0;
-}
+.pagination button:hover { background-color: #f0f0f0; }
 .pagination button.active {
     background-color: #4CAF50;
     color: white;
@@ -215,9 +208,7 @@ body {
     transition: opacity 0.5s ease-in-out;
     z-index: 1000;
 }
-.notification.show {
-    opacity: 1;
-}
+.notification.show { opacity: 1; }
 
 /* Loader */
 .loader {
@@ -236,22 +227,13 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
-    body {
-        padding: 10px;
-    }
-    .form-section, .table-section {
-        padding: 15px;
-    }
-    #contact-form input, 
-    #contact-form textarea, 
-    #contact-form select, 
-    #searchInput {
-        font-size: 15px;
-    }
-    .action-buttons {
-        flex-direction: column;
-    }
-    .action-buttons button {
-        width: 100%;
-    }
+    body { padding: 10px; }
+    .form-section, .table-section { padding: 15px; }
+    #contact-form input,
+    #contact-form textarea,
+    #contact-form select,
+    #searchInput { font-size: 15px; }
+    .action-buttons { flex-direction: column; }
+    .action-buttons button { width: 100%; }
+    #data-table th, #data-table td { font-size: 14px; }
 }
