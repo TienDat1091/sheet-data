@@ -149,7 +149,7 @@ function displayData(data, page = 1) {
                 // Cột link ảnh (index = 6)
                 if (index === 6 && cell) {
                     let links = cell.split(/\r?\n|,|;/).map(l => l.trim()).filter(l => l);
-                    td.innerHTML = links.map(l => `<a href="${l}" target="_blank">${l}</a>`).join('<br>');
+                    td.innerHTML = links.map(l => `<img src="${l}" alt="Ảnh minh họa" width="150">`).join('<br>');
                 } else {
                     td.textContent = cell || '';
                 }
