@@ -7,6 +7,26 @@ body {
     color: #333;
 }
 
+.top-controls {
+    display: flex;
+    justify-content: space-between; /* trái & phải */
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.filter-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+
 /* Container chính */
 .container {
     max-width: 1200px;
@@ -91,7 +111,7 @@ body {
     margin-bottom: 15px;
 }
 #searchInput {
-    width: 100%;
+    width: 98%;
     padding: 12px;
     border: 1px solid #ccc;
     border-radius: 6px;
@@ -107,35 +127,99 @@ body {
     overflow-x: auto;
 }
 
-/* Bảng */
+/* Bảng - CẢI THIỆN PHẦN NÀY */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    border: 2px solid #333; /* Border đậm hơn cho toàn bộ bảng */
+}
+
+th, td {
+    border: 1px solid #333; /* Border đậm và rõ ràng */
+    padding: 8px;
+    text-align: left;
+}
+
 #data-table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: fixed; /* quan trọng để xử lý tràn */
+    table-layout: fixed;
+    border: 0.5px solid #333; /* Border ngoài đậm cho bảng */
+    background-color: #fff; /* Đảm bảo nền trắng */
 }
+
 #data-table th, #data-table td {
-    border: 1px solid #e0e0e0;
+    border: 1px solid #333; /* Border đậm và rõ ràng cho mọi ô */
     padding: 12px;
     text-align: left;
     font-size: 15px;
     vertical-align: top;
-    word-break: break-word; /* ngắt từ khi quá dài */
-    white-space: pre-wrap;  /* giữ xuống dòng */
+    word-break: break-word;
+    white-space: pre-wrap;
 }
+
 #data-table th {
     background-color: #f9f9f9;
     font-weight: 600;
     color: #444;
+    border: 0.5px solid #333; /* Border đậm cho header */
 }
+
+#data-table tr {
+    border-bottom: 0.5px solid #333; /* Thêm border dưới mỗi hàng */
+}
+
 #data-table tr:nth-child(even) {
     background-color: #fafafa;
 }
+
 #data-table tr:hover {
     background-color: #f1f8e9;
 }
+
+#data-table tbody tr:last-child {
+    border-bottom: 0.5px solid #333; /* Border dưới hàng cuối đậm hơn */
+}
+
 /* Điều chỉnh chiều rộng cột */
 #data-table th:nth-child(1), #data-table td:nth-child(1) { width: 80px; }
 #data-table th:nth-child(6), #data-table td:nth-child(6) { min-width: 220px; }
+
+/* THÊM STYLE CHO TRƯỜNG HỢP BẢNG TRỐNG */
+.empty-table {
+    border: 2px solid #333;
+    background-color: #fff;
+}
+
+.empty-table th {
+    border: 1px solid #333;
+    background-color: #f9f9f9;
+}
+
+/* Style cho thông báo lỗi */
+/* .error-message {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-style: italic;
+    background-color: #f9f9f9;
+    border: 1px solid #333;
+    border-radius: 6px;
+    margin-top: 10px;
+} */
+
+/* THÊM STYLE CHO BẢNG KHI CÓ DỮ LIỆU NHƯNG TRỐNG SAU KHI LỌC */
+.no-data-row {
+    background-color: #f9f9f9;
+    text-align: center;
+    font-style: italic;
+    color: #666;
+}
+
+.no-data-row td {
+    padding: 30px;
+    border: 1px solid #333;
+}
 
 /* Buttons */
 .action-buttons {
@@ -164,6 +248,42 @@ body {
     background-color: #f44336;
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* Filter container */
+.filter-container {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-container label {
+    font-weight: 500;
+    color: #444;
+}
+
+.filter-container input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.filter-container button {
+    padding: 8px 16px;
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.filter-container button:hover {
+    background-color: #1976D2;
 }
 
 /* Pagination */
@@ -236,4 +356,6 @@ body {
     .action-buttons { flex-direction: column; }
     .action-buttons button { width: 100%; }
     #data-table th, #data-table td { font-size: 14px; }
+    .filter-container { flex-direction: column; align-items: stretch; }
+    .filter-container input, .filter-container button { width: 100%; }
 }

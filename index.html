@@ -14,42 +14,48 @@
         <div class="form-section">
             <h4>Nhập lỗi</h4>
             <form id="contact-form" name="contact-form">
-                <input type="text" name="id" id="id" placeholder="ID lỗi" required readonly="true">
-                <div id="id-preview" class="id-preview"></div>
-                <select type = "text" name="issue" required>
-                    <option value="">Chọn mô tả lỗi</option>
-                    <option value="PM_MO">PM_MO</option>
-                    <option value="SO">SO</option>
-                    <option value="LAB_PRINT">LAB_PRINT</option>
-                    <option value="WET">WET</option>
-                    <option value="REPAIR">REPAIR</option>
-                    <option value="QUERY">QUERY</option>
-                    <option value="RATESET">RATESET</option>
-                    <option value="IOTYPE">IOTYPE</option>
-                    <option value="WKTYPE">WKTYPE</option>
-                    <option value="ISSUE">ISSUE</option>
-                    <option value="OTHER">OTHER.....</option>
-                </select>
-                <input type="text" name="subject" placeholder="Tiêu đề mail" required>
-                <input type="text" name="why" placeholder="Vấn đề lỗi" required>
-                <textarea name="how" placeholder="Cách fix" required></textarea>
-                <input type="datetime-local" name="timestamp" id="timestamp" required>
-                <div class="submit-container">
-                    <input type="submit" value="Gửi">
-                    <div id="loader" class="loader"></div>
-                </div>
-            </form>
+            <input type="text" name="id" id="id" placeholder="ID lỗi" required readonly="true">
+            <div id="id-preview" class="id-preview"></div>
+            <select name="issue" required>
+                <option value="">Chọn mô tả lỗi</option>
+                <option value="PM_MO">PM_MO</option>
+                <option value="SO">SO</option>
+                <option value="LAB_PRINT">LAB_PRINT</option>
+                <option value="WET">WET</option>
+                <option value="REPAIR">REPAIR</option>
+                <option value="QUERY">QUERY</option>
+                <option value="RATESET">RATESET</option>
+                <option value="IOTYPE">IOTYPE</option>
+                <option value="WKTYPE">WKTYPE</option>
+                <option value="ISSUE">ISSUE</option>
+                <option value="OTHER">OTHER.....</option>
+            </select>
+            <input type="text" name="subject" placeholder="Tiêu đề mail" required>
+            <input type="text" name="why" placeholder="Vấn đề lỗi" required>
+            <textarea name="how" placeholder="Cách fix" required></textarea>
+            <!-- Thêm ô link ảnh -->
+            <input type="datetime-local" name="timestamp" id="timestamp" required>
+            <textarea name="link" placeholder="Link ảnh (Nếu có)"></textarea>
+            <div class="submit-container">
+                <input type="submit" value="Gửi">
+                <div id="loader" class="loader"></div>
+            </div>
+        </form>
         </div>
 
         <!-- Bảng hiển thị và tìm kiếm -->
     <div class="table-section">
-        <h4>Dữ liệu đã lưu</h4>
+    <h4>Dữ liệu đã lưu</h4>
+
+    <!-- Gộp 2 bên cùng hàng -->
+    <div class="top-controls">
+        <!-- Nút bên trái -->
         <div class="action-buttons">
             <button id="refreshButton">Làm mới</button>
             <button id="exportButton">Xuất Excel</button>
         </div>
 
-        <!-- Bộ lọc theo thời gian -->
+        <!-- Filter bên phải -->
         <div class="filter-container">
             <label for="startDate">Từ:</label>
             <input type="datetime-local" id="startDate">
@@ -57,23 +63,34 @@
             <input type="datetime-local" id="endDate">
             <button id="filterButton">Lọc theo thời gian</button>
         </div>
-
-        <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Nhập từ khóa tìm kiếm...">
     </div>
+
+    <!-- Tìm kiếm -->
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Nhập từ khóa tìm kiếm...">
+    </div>
+
+    <!-- Bảng dữ liệu -->
     <table id="data-table">
-        <thead>
-            <tr id="header">
-                <th>ID</th>
-                <th>Mô tả lỗi</th>
-                <th>Tiêu đề mail</th>
-                <th>Vấn đề lỗi</th>
-                <th>Cách fix</th>
-                <th>Thời gian</th>
-            </tr>
-        </thead>
-        <tbody id="data"></tbody>
-    </table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Mô tả lỗi</th>
+                    <th>Tiêu đề mail</th>
+                    <th>Vấn đề lỗi</th>
+                    <th>Cách fix</th>
+                    <th>Thời gian</th>
+                    <th>Link ảnh</th>
+                </tr>
+            </thead>
+            <tbody id="data">
+                <tr class="no-data-row">
+                    <td colspan="7">Không có dữ liệu</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
     <div id="error" class="error-message"></div>
     <div id="pagination" class="pagination"></div>
     </div>

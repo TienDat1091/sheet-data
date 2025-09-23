@@ -1,6 +1,6 @@
 const apiKey = 'AIzaSyBCF4lFlZFecrRPCZPCoPJRaUB3ZPGK2kk';
 const spreadsheetId = '18ehCo3v-QeAyjEKump-ZffgsX2d2_Q2bljUaGvJvIK4';
-const range = 'sheet1!A1:F';
+const range = 'sheet1!A1:G';
 const scriptURL = 'https://script.google.com/macros/s/AKfycbw3ZbmPghaM5CEg8f2PgXGobBTJkdPadMzExHfhWNtaevNt8W3lxCt81vw2ZDtt_SnJ/exec';
 
 let sheetData = [];
@@ -14,9 +14,7 @@ function showNotification(message, isError = false) {
     notification.textContent = message;
     notification.style.backgroundColor = isError ? '#f44336' : '#4CAF50';
     notification.classList.add('show');
-    setTimeout(() => {
-        notification.classList.remove('show');
-    }, 3000);
+    setTimeout(() => notification.classList.remove('show'), 3000);
 }
 
 // Loader
@@ -32,13 +30,14 @@ function generateAutoID(data) {
     const day = String(now.getDate()).padStart(2, '0');
     const datePrefix = `${year}${month}${day}`;
 
-    const todayIDs = data.slice(1).filter(row => row[0] && row[0].startsWith(datePrefix)).map(row => row[0]);
+    const todayIDs = data.slice(1)
+        .filter(row => row[0] && row[0].startsWith(datePrefix))
+        .map(row => row[0]);
+    
     let maxSerial = 0;
     todayIDs.forEach(id => {
         const serial = parseInt(id.slice(8), 10);
-        if (!isNaN(serial) && serial > maxSerial) {
-            maxSerial = serial;
-        }
+        if (!isNaN(serial) && serial > maxSerial) maxSerial = serial;
     });
 
     const nextSerial = String(maxSerial + 1).padStart(3, '0');
@@ -53,7 +52,16 @@ function updateAutoID() {
     idPreview.textContent = `ID tiếp theo: ${autoID}`;
 }
 
-// Lọc theo time
+// Đặt thời gian mặc định
+function setDefaultTimestamp() {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const adjustedDate = new Date(now.getTime() - (offset * 60 * 1000));
+    const formattedDate = adjustedDate.toISOString().slice(0, 16);
+    document.getElementById('timestamp').value = formattedDate;
+}
+
+// Lọc theo thời gian
 function filterByDate() {
     const startDateInput = document.getElementById("startDate").value;
     const endDateInput = document.getElementById("endDate").value;
@@ -65,31 +73,37 @@ function filterByDate() {
 
     const start = new Date(startDateInput);
     const end = new Date(endDateInput);
-
-    // Bảo đảm giờ kết thúc lấy hết trong phút đó
     end.setSeconds(59);
 
-    // Lọc dữ liệu theo cột thời gian (ở đây là cột thứ 6: index = 5)
     filteredData = [sheetData[0], ...sheetData.slice(1).filter(row => {
         if (!row[5]) return false;
-        const timeStr = row[5].toString().replace(" ", "T"); // "2025-09-23T02:01"
-        const rowDate = new Date(timeStr);
+        const rowDate = new Date(row[5].toString().replace(" ", "T"));
         return rowDate >= start && rowDate <= end;
     })];
 
     currentPage = 1;
     displayData(filteredData, currentPage);
 }
+
 document.getElementById('filterButton').addEventListener('click', filterByDate);
 
-function setDefaultTimestamp() {
-    const now = new Date();
-    const offset = now.getTimezoneOffset();
-    const adjustedDate = new Date(now.getTime() - (offset * 60 * 1000));
-    const formattedDate = adjustedDate.toISOString().slice(0, 16);
-    document.getElementById('timestamp').value = formattedDate;
+// Tìm kiếm
+function searchTable() {
+    const input = document.getElementById('searchInput').value.toLowerCase();
+    if (!sheetData.length) {
+        document.getElementById('error').textContent = 'Chưa có dữ liệu để tìm kiếm.';
+        return;
+    }
+
+    filteredData = [sheetData[0], ...sheetData.slice(1).filter(row =>
+        row.some(cell => cell && cell.toString().toLowerCase().includes(input))
+    )];
+
+    currentPage = 1;
+    displayData(filteredData, currentPage);
 }
 
+// Hiển thị dữ liệu với phân trang
 function displayData(data, page = 1) {
     const dataBody = document.getElementById('data');
     const errorDiv = document.getElementById('error');
@@ -99,35 +113,53 @@ function displayData(data, page = 1) {
     errorDiv.textContent = '';
     paginationDiv.innerHTML = '';
 
-    if (data.length === 0 || data.length === 1) {
-        errorDiv.textContent = 'Không tìm thấy dữ liệu phù hợp.';
+    if (!data || data.length <= 1) {
+        errorDiv.textContent = 'Không có dữ liệu để hiển thị.';
         return;
     }
 
+    const header = data[0];
     const startIndex = (page - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const paginatedData = data.slice(1).slice(startIndex, endIndex);
 
-    paginatedData.forEach((row) => {
+    if (paginatedData.length === 0) {
         const tr = document.createElement('tr');
-        row.forEach(cell => {
-            const td = document.createElement('td');
-            td.textContent = cell || '';
-            tr.appendChild(td);
-        });
+        tr.classList.add('no-data-row');
+        const td = document.createElement('td');
+        td.colSpan = header.length;
+        td.textContent = 'Không tìm thấy dữ liệu phù hợp.';
+        tr.appendChild(td);
         dataBody.appendChild(tr);
-    });
+    } else {
+        paginatedData.forEach(row => {
+            const tr = document.createElement('tr');
+            row.forEach((cell, index) => {
+                const td = document.createElement('td');
 
+                // Cột link ảnh (index = 6)
+                if (index === 6 && cell) {
+                    let links = cell.split(/\r?\n|,|;/).map(l => l.trim()).filter(l => l);
+                    td.innerHTML = links.map(l => `<a href="${l}" target="_blank">${l}</a>`).join('<br>');
+                } else {
+                    td.textContent = cell || '';
+                }
+
+                tr.appendChild(td);
+            });
+            dataBody.appendChild(tr);
+        });
+    }
+
+    // Phân trang
     const totalPages = Math.ceil((data.length - 1) / itemsPerPage);
     if (totalPages > 1) {
         const prevButton = document.createElement('button');
         prevButton.textContent = 'Previous';
         prevButton.disabled = page === 1;
         prevButton.addEventListener('click', () => {
-            if (page > 1) {
-                currentPage--;
-                displayData(data, currentPage);
-            }
+            currentPage = Math.max(1, page - 1);
+            displayData(data, currentPage);
         });
         paginationDiv.appendChild(prevButton);
 
@@ -146,10 +178,8 @@ function displayData(data, page = 1) {
         nextButton.textContent = 'Next';
         nextButton.disabled = page === totalPages;
         nextButton.addEventListener('click', () => {
-            if (page < totalPages) {
-                currentPage++;
-                displayData(data, currentPage);
-            }
+            currentPage = Math.min(totalPages, page + 1);
+            displayData(data, currentPage);
         });
         paginationDiv.appendChild(nextButton);
     }
@@ -157,6 +187,7 @@ function displayData(data, page = 1) {
     updateAutoID();
 }
 
+// Lấy dữ liệu từ Google Sheet
 async function fetchGoogleSheetData() {
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
     const errorDiv = document.getElementById('error');
@@ -164,9 +195,7 @@ async function fetchGoogleSheetData() {
 
     try {
         const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         const data = await response.json();
         sheetData = data.values || [];
         filteredData = sheetData;
@@ -180,28 +209,13 @@ async function fetchGoogleSheetData() {
         displayData(filteredData, currentPage);
     } catch (error) {
         console.error('Lỗi khi lấy dữ liệu:', error);
-        errorDiv.textContent = 'Lỗi khi tải dữ liệu từ Google Sheets. Vui lòng kiểm tra API Key hoặc kết nối.';
+        errorDiv.textContent = 'Lỗi khi tải dữ liệu từ Google Sheets.';
     } finally {
         toggleLoader(false);
     }
 }
 
-function searchTable() {
-    const input = document.getElementById('searchInput').value.toLowerCase();
-    if (!sheetData.length) {
-        document.getElementById('error').textContent = 'Chưa có dữ liệu để tìm kiếm.';
-        return;
-    }
-
-    filteredData = [sheetData[0], ...sheetData.slice(1).filter(row =>
-        row.some(cell => cell && cell.toString().toLowerCase().includes(input))
-    )];
-
-    currentPage = 1;
-    displayData(filteredData, currentPage);
-}
-
-// Xuất dữ liệu ra Excel (xlsx)
+// Xuất Excel
 function exportToExcel() {
     if (!filteredData || filteredData.length === 0) {
         showNotification("Không có dữ liệu để xuất!", true);
@@ -209,37 +223,35 @@ function exportToExcel() {
     }
 
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(filteredData);
-
+    const wsData = filteredData.map(row => row.map((cell, index) => {
+        if (index === 6 && cell) return cell.replace(/\r?\n/g, '\n');
+        return cell;
+    }));
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
     XLSX.writeFile(wb, "data_filtered.xlsx");
 }
 
+// Gửi form
 const form = document.forms['contact-form'];
 form.addEventListener('submit', async e => {
     e.preventDefault();
     const formData = new FormData(form);
     const id = formData.get('id').trim();
-    if (!id) {
-        showNotification('ID lỗi không được để trống.', true);
-        return;
-    }
+    if (!id) { showNotification('ID lỗi không được để trống.', true); return; }
 
     toggleLoader(true);
     try {
-        const response = await fetch(scriptURL, {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            throw new Error('Có lỗi khi gửi form. Mã lỗi: ' + response.status);
-        }
-
+        const response = await fetch(scriptURL, { method: 'POST', body: formData });
+        if (!response.ok) throw new Error('Có lỗi khi gửi form. Mã lỗi: ' + response.status);
         const data = await response.json();
         showNotification('Dữ liệu đã được gửi thành công!');
         form.reset();
         setDefaultTimestamp();
+
+        // Chuẩn hóa link ảnh xuống dòng
+        let links = formData.get('link').trim();
+        links = links.split(/\r?\n|,|;/).map(l => l.trim()).filter(l => l).join('\n');
 
         const newRow = [
             formData.get('id'),
@@ -247,21 +259,20 @@ form.addEventListener('submit', async e => {
             formData.get('subject'),
             formData.get('why'),
             formData.get('how'),
-            formData.get('timestamp')
+            formData.get('timestamp'),
+            links
         ];
+
         sheetData.push(newRow);
-        if (!document.getElementById('searchInput').value) {
-            filteredData = sheetData;
-        }
+        if (!document.getElementById('searchInput').value) filteredData = sheetData;
+
         const newRowIndex = sheetData.length - 1;
         currentPage = Math.ceil(newRowIndex / itemsPerPage);
         displayData(filteredData, currentPage);
     } catch (error) {
         console.error('Lỗi!', error.message);
         showNotification('Đã xảy ra lỗi: ' + error.message, true);
-    } finally {
-        toggleLoader(false);
-    }
+    } finally { toggleLoader(false); }
 });
 
 document.getElementById('searchInput').addEventListener('input', searchTable);
