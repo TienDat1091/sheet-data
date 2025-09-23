@@ -85,8 +85,17 @@ function filterByDate() {
     displayData(filteredData, currentPage);
 }
 
-document.getElementById('filterButton').addEventListener('click', filterByDate);
+// Nút làm mới filter
+document.getElementById('resetFilterButton').addEventListener('click', () => {
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+    filteredData = sheetData; // Trả về toàn bộ dữ liệu gốc
+    currentPage = 1;
+    displayData(filteredData, currentPage);
+});
 
+
+document.getElementById('filterButton').addEventListener('click', filterByDate);
 // Tìm kiếm
 function searchTable() {
     const input = document.getElementById('searchInput').value.toLowerCase();
