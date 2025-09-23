@@ -53,6 +53,35 @@ function updateAutoID() {
     idPreview.textContent = `ID tiếp theo: ${autoID}`;
 }
 
+// Lọc theo time
+function filterByDate() {
+    const startDateInput = document.getElementById("startDate").value;
+    const endDateInput = document.getElementById("endDate").value;
+
+    if (!startDateInput || !endDateInput) {
+        showNotification("Vui lòng chọn cả thời gian bắt đầu và kết thúc.", true);
+        return;
+    }
+
+    const start = new Date(startDateInput);
+    const end = new Date(endDateInput);
+
+    // Bảo đảm giờ kết thúc lấy hết trong phút đó
+    end.setSeconds(59);
+
+    // Lọc dữ liệu theo cột thời gian (ở đây là cột thứ 6: index = 5)
+    filteredData = [sheetData[0], ...sheetData.slice(1).filter(row => {
+        if (!row[5]) return false;
+        const timeStr = row[5].toString().replace(" ", "T"); // "2025-09-23T02:01"
+        const rowDate = new Date(timeStr);
+        return rowDate >= start && rowDate <= end;
+    })];
+
+    currentPage = 1;
+    displayData(filteredData, currentPage);
+}
+document.getElementById('filterButton').addEventListener('click', filterByDate);
+
 function setDefaultTimestamp() {
     const now = new Date();
     const offset = now.getTimezoneOffset();
@@ -174,16 +203,16 @@ function searchTable() {
 
 // Xuất dữ liệu ra Excel (xlsx)
 function exportToExcel() {
-    if (!sheetData || sheetData.length === 0) {
+    if (!filteredData || filteredData.length === 0) {
         showNotification("Không có dữ liệu để xuất!", true);
         return;
     }
 
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    const ws = XLSX.utils.aoa_to_sheet(filteredData);
 
     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-    XLSX.writeFile(wb, "data.xlsx");
+    XLSX.writeFile(wb, "data_filtered.xlsx");
 }
 
 const form = document.forms['contact-form'];

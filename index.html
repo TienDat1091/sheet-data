@@ -42,31 +42,41 @@
         </div>
 
         <!-- Bảng hiển thị và tìm kiếm -->
-        <div class="table-section">
-            <h4>Dữ liệu đã lưu</h4>
-            <div class="action-buttons">
-                <button id="refreshButton">Làm mới</button>
-                <button id="exportButton">Xuất Excel</button>
-            </div>
-            <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Nhập từ khóa tìm kiếm...">
-            </div>
-            <table id="data-table">
-                <thead>
-                    <tr id="header">
-                        <th>ID</th>
-                        <th>Mô tả lỗi</th>
-                        <th>Tiêu đề mail</th>
-                        <th>Vấn đề lỗi</th>
-                        <th>Cách fix</th>
-                        <th>Thời gian</th>
-                    </tr>
-                </thead>
-                <tbody id="data"></tbody>
-            </table>
-            <div id="error" class="error-message"></div>
-            <div id="pagination" class="pagination"></div>
+    <div class="table-section">
+        <h4>Dữ liệu đã lưu</h4>
+        <div class="action-buttons">
+            <button id="refreshButton">Làm mới</button>
+            <button id="exportButton">Xuất Excel</button>
         </div>
+
+        <!-- Bộ lọc theo thời gian -->
+        <div class="filter-container">
+            <label for="startDate">Từ:</label>
+            <input type="datetime-local" id="startDate">
+            <label for="endDate">Đến:</label>
+            <input type="datetime-local" id="endDate">
+            <button id="filterButton">Lọc theo thời gian</button>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Nhập từ khóa tìm kiếm...">
+    </div>
+    <table id="data-table">
+        <thead>
+            <tr id="header">
+                <th>ID</th>
+                <th>Mô tả lỗi</th>
+                <th>Tiêu đề mail</th>
+                <th>Vấn đề lỗi</th>
+                <th>Cách fix</th>
+                <th>Thời gian</th>
+            </tr>
+        </thead>
+        <tbody id="data"></tbody>
+    </table>
+    <div id="error" class="error-message"></div>
+    <div id="pagination" class="pagination"></div>
+    </div>
     </div>
     <div id="notification" class="notification"></div>
    <script src="script/script.js"></script>
