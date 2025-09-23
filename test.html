@@ -1,1 +1,62 @@
-<img src="https://i.postimg.cc/nzXPjjbk/497809895-684481614183066-2102588990892103026-n.jpg" alt="Ảnh minh họa" width="400">
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Xuất PPTX</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.11.0/pptxgen.bundle.js"></script>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; }
+        button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<h2>Tạo PowerPoint</h2>
+
+<div id="slidesContainer">
+    <div class="slide-input">
+        <input type="text" placeholder="Tiêu đề slide">
+        <textarea placeholder="Nội dung slide"></textarea>
+    </div>
+</div>
+
+<button id="addSlideBtn">Thêm Slide</button>
+<button id="exportPPTBtn">Xuất PPTX</button>
+
+<script>
+const slidesContainer = document.getElementById('slidesContainer');
+const addSlideBtn = document.getElementById('addSlideBtn');
+const exportPPTBtn = document.getElementById('exportPPTBtn');
+
+// Thêm slide input mới
+addSlideBtn.addEventListener('click', () => {
+    const slideDiv = document.createElement('div');
+    slideDiv.className = 'slide-input';
+    slideDiv.innerHTML = `
+        <input type="text" placeholder="Tiêu đề slide">
+        <textarea placeholder="Nội dung slide"></textarea>
+    `;
+    slidesContainer.appendChild(slideDiv);
+});
+
+// Xuất PPTX
+exportPPTBtn.addEventListener('click', () => {
+    const pptx = new PptxGenJS();
+    const slideInputs = document.querySelectorAll('.slide-input');
+
+    slideInputs.forEach(inputDiv => {
+        const title = inputDiv.querySelector('input').value;
+        const content = inputDiv.querySelector('textarea').value;
+
+        const slide = pptx.addSlide();
+        slide.addText(title, { x:1, y:0.5, fontSize:24, bold:true });
+        slide.addText(content, { x:1, y:1.5, fontSize:18, color:'363636' });
+    });
+
+    pptx.writeFile({ fileName: "presentation.pptx" });
+});
+</script>
+
+</body>
+</html>
