@@ -2,61 +2,472 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Xuất PPTX</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.11.0/pptxgen.bundle.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML to PPTX Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.min.js"></script>
     <style>
-        body { font-family: Arial; padding: 20px; }
-        input, textarea { width: 100%; padding: 8px; margin: 5px 0; }
-        button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 800px;
+            width: 90%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+        
+        textarea, input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #495057;
+            border: 2px solid #e1e5e9;
+        }
+        
+        .btn-secondary:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+        }
+        
+        .preview {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px solid #e1e5e9;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .slide {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .slide h1, .slide h2, .slide h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .slide p {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .example {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .example h4 {
+            color: #495057;
+            margin-bottom: 10px;
+        }
+        
+        .example pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+        }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h1>HTML to PPTX Converter</h1>
+        
+        <div class="input-group">
+            <label for="htmlInput">Nhập HTML content:</label>
+            <textarea id="htmlInput" placeholder="Dán HTML content của bạn vào đây..."></textarea>
+        </div>
+        
+        <div class="input-group">
+            <label for="fileName">Tên file PPTX:</label>
+            <input type="text" id="fileName" value="presentation" placeholder="Nhập tên file (không cần .pptx)">
+        </div>
+        
+        <div class="button-group">
+            <button class="btn-primary" onclick="convertToPptx()">Chuyển đổi sang PPTX</button>
+            <button class="btn-secondary" onclick="previewSlides()">Xem trước Slides</button>
+            <button class="btn-secondary" onclick="loadExample()">Tải ví dụ</button>
+        </div>
+        
+        <div id="status"></div>
+        <div id="preview"></div>
+        
+        <div class="example">
+            <h4>Định dạng HTML mẫu:</h4>
+            <pre>&lt;section class="slide"&gt;
+  &lt;h1&gt;Tiêu đề Slide 1&lt;/h1&gt;
+  &lt;p&gt;Nội dung của slide đầu tiên...&lt;/p&gt;
+&lt;/section&gt;
 
-<h2>Tạo PowerPoint</h2>
-
-<div id="slidesContainer">
-    <div class="slide-input">
-        <input type="text" placeholder="Tiêu đề slide">
-        <textarea placeholder="Nội dung slide"></textarea>
+&lt;section class="slide"&gt;
+  &lt;h2&gt;Tiêu đề Slide 2&lt;/h2&gt;
+  &lt;p&gt;Nội dung của slide thứ hai...&lt;/p&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Điểm 1&lt;/li&gt;
+    &lt;li&gt;Điểm 2&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/section&gt;</pre>
+        </div>
     </div>
-</div>
 
-<button id="addSlideBtn">Thêm Slide</button>
-<button id="exportPPTBtn">Xuất PPTX</button>
+    <script>
+        // Hàm tải thư viện PptxGenJS
+        function loadPptxGenJS() {
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';
+            script.onload = function() {
+                showStatus('Thư viện đã được tải thành công!');
+            };
+            script.onerror = function() {
+                showStatus('Không thể tải thư viện PptxGenJS!', 'error');
+            };
+            document.head.appendChild(script);
+        }
 
-<script>
-const slidesContainer = document.getElementById('slidesContainer');
-const addSlideBtn = document.getElementById('addSlideBtn');
-const exportPPTBtn = document.getElementById('exportPPTBtn');
+        function showStatus(message, type = 'success') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 3000);
+        }
 
-// Thêm slide input mới
-addSlideBtn.addEventListener('click', () => {
-    const slideDiv = document.createElement('div');
-    slideDiv.className = 'slide-input';
-    slideDiv.innerHTML = `
-        <input type="text" placeholder="Tiêu đề slide">
-        <textarea placeholder="Nội dung slide"></textarea>
-    `;
-    slidesContainer.appendChild(slideDiv);
-});
+        function parseHtmlToSlides(htmlContent) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            
+            // Tìm các slide theo class hoặc tag
+            let slides = doc.querySelectorAll('.slide, section');
+            
+            // Nếu không tìm thấy slide, tạo slide từ các heading
+            if (slides.length === 0) {
+                const headings = doc.querySelectorAll('h1, h2, h3');
+                const slideData = [];
+                
+                headings.forEach(heading => {
+                    let content = '';
+                    let nextElement = heading.nextElementSibling;
+                    
+                    while (nextElement && !nextElement.matches('h1, h2, h3')) {
+                        content += nextElement.outerHTML || nextElement.textContent;
+                        nextElement = nextElement.nextElementSibling;
+                    }
+                    
+                    slideData.push({
+                        title: heading.textContent,
+                        content: content
+                    });
+                });
+                
+                return slideData;
+            }
+            
+            // Xử lý slides tìm được
+            const slideData = [];
+            slides.forEach(slide => {
+                const title = slide.querySelector('h1, h2, h3, .title')?.textContent || 'Untitled Slide';
+                
+                let content = '';
+                const contentElements = slide.querySelectorAll('p, ul, ol, div:not(.title)');
+                contentElements.forEach(el => {
+                    if (el.tagName === 'UL' || el.tagName === 'OL') {
+                        const items = Array.from(el.querySelectorAll('li')).map(li => '• ' + li.textContent).join('\n');
+                        content += items + '\n';
+                    } else {
+                        content += el.textContent + '\n';
+                    }
+                });
+                
+                slideData.push({
+                    title: title,
+                    content: content.trim()
+                });
+            });
+            
+            return slideData;
+        }
 
-// Xuất PPTX
-exportPPTBtn.addEventListener('click', () => {
-    const pptx = new PptxGenJS();
-    const slideInputs = document.querySelectorAll('.slide-input');
+        function convertToPptx() {
+            const htmlContent = document.getElementById('htmlInput').value.trim();
+            const fileName = document.getElementById('fileName').value.trim() || 'presentation';
+            
+            if (!htmlContent) {
+                showStatus('Vui lòng nhập HTML content!', 'error');
+                return;
+            }
+            
+            // Kiểm tra xem thư viện đã được tải chưa
+            if (typeof PptxGenJS === 'undefined') {
+                showStatus('Đang tải thư viện, vui lòng thử lại sau...', 'error');
+                // Thử tải lại thư viện
+                loadPptxGenJS();
+                return;
+            }
+            
+            try {
+                const pptx = new PptxGenJS();
+                
+                // Cấu hình presentation
+                pptx.layout = 'LAYOUT_16x9';
+                pptx.author = 'HTML to PPTX Converter';
+                pptx.company = 'Custom Generator';
+                pptx.title = fileName;
+                
+                const slides = parseHtmlToSlides(htmlContent);
+                
+                if (slides.length === 0) {
+                    showStatus('Không tìm thấy nội dung slide nào!', 'error');
+                    return;
+                }
+                
+                slides.forEach((slideData, index) => {
+                    const slide = pptx.addSlide();
+                    
+                    // Thêm tiêu đề
+                    slide.addText(slideData.title, {
+                        x: 0.5,
+                        y: 0.5,
+                        w: 9,
+                        h: 1,
+                        fontSize: 28,
+                        bold: true,
+                        color: '363636',
+                        align: 'center'
+                    });
+                    
+                    // Thêm nội dung
+                    if (slideData.content) {
+                        slide.addText(slideData.content, {
+                            x: 0.5,
+                            y: 2,
+                            w: 9,
+                            h: 4,
+                            fontSize: 16,
+                            color: '666666',
+                            align: 'left',
+                            valign: 'top'
+                        });
+                    }
+                    
+                    // Thêm số trang
+                    slide.addText(`${index + 1} / ${slides.length}`, {
+                        x: 8.5,
+                        y: 6.5,
+                        w: 1,
+                        h: 0.3,
+                        fontSize: 10,
+                        color: '999999',
+                        align: 'center'
+                    });
+                });
+                
+                // Xuất file
+                pptx.writeFile({ fileName: fileName + '.pptx' });
+                showStatus(`Đã xuất thành công file ${fileName}.pptx!`);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('Có lỗi xảy ra khi chuyển đổi: ' + error.message, 'error');
+            }
+        }
 
-    slideInputs.forEach(inputDiv => {
-        const title = inputDiv.querySelector('input').value;
-        const content = inputDiv.querySelector('textarea').value;
+        function previewSlides() {
+            const htmlContent = document.getElementById('htmlInput').value.trim();
+            
+            if (!htmlContent) {
+                showStatus('Vui lòng nhập HTML content để xem trước!', 'error');
+                return;
+            }
+            
+            try {
+                const slides = parseHtmlToSlides(htmlContent);
+                const previewDiv = document.getElementById('preview');
+                
+                if (slides.length === 0) {
+                    previewDiv.innerHTML = '<p>Không tìm thấy nội dung slide nào!</p>';
+                    return;
+                }
+                
+                let previewHtml = '<h3>Xem trước Slides:</h3>';
+                slides.forEach((slide, index) => {
+                    previewHtml += `
+                        <div class="slide">
+                            <h3>Slide ${index + 1}: ${slide.title}</h3>
+                            <p>${slide.content.replace(/\n/g, '<br>')}</p>
+                        </div>
+                    `;
+                });
+                
+                previewDiv.innerHTML = previewHtml;
+                showStatus(`Tìm thấy ${slides.length} slide(s)`);
+                
+            } catch (error) {
+                showStatus('Có lỗi khi xem trước: ' + error.message, 'error');
+            }
+        }
 
-        const slide = pptx.addSlide();
-        slide.addText(title, { x:1, y:0.5, fontSize:24, bold:true });
-        slide.addText(content, { x:1, y:1.5, fontSize:18, color:'363636' });
-    });
+        function loadExample() {
+            const exampleHtml = `<section class="slide">
+    <h1>Chào mừng đến với Presentation</h1>
+    <p>Đây là slide giới thiệu của chúng tôi. Presentation này sẽ bao gồm các thông tin quan trọng về dự án.</p>
+</section>
 
-    pptx.writeFile({ fileName: "presentation.pptx" });
-});
-</script>
+<section class="slide">
+    <h2>Mục tiêu dự án</h2>
+    <p>Các mục tiêu chính của dự án bao gồm:</p>
+    <ul>
+        <li>Tăng hiệu quả làm việc</li>
+        <li>Cải thiện trải nghiệm người dùng</li>
+        <li>Tối ưu hóa quy trình</li>
+        <li>Giảm chi phí vận hành</li>
+    </ul>
+</section>
 
+<section class="slide">
+    <h2>Kế hoạch thực hiện</h2>
+    <p>Dự án sẽ được triển khai theo các giai đoạn:</p>
+    <ol>
+        <li>Phân tích yêu cầu (2 tuần)</li>
+        <li>Thiết kế hệ thống (3 tuần)</li>
+        <li>Phát triển (6 tuần)</li>
+        <li>Kiểm thử (2 tuần)</li>
+        <li>Triển khai (1 tuần)</li>
+    </ol>
+</section>
+
+<section class="slide">
+    <h2>Cảm ơn!</h2>
+    <p>Cảm ơn các bạn đã dành thời gian theo dõi presentation. Mọi câu hỏi xin vui lòng liên hệ với chúng tôi.</p>
+</section>`;
+
+            document.getElementById('htmlInput').value = exampleHtml;
+            showStatus('Đã tải ví dụ HTML thành công!');
+        }
+
+        // Kiểm tra và tải thư viện khi trang được load
+        window.addEventListener('load', () => {
+            // Kiểm tra xem PptxGenJS đã có chưa
+            if (typeof PptxGenJS === 'undefined') {
+                console.log('PptxGenJS chưa được tải, đang tải lại...');
+                loadPptxGenJS();
+            }
+            
+            setTimeout(() => {
+                loadExample();
+            }, 1000);
+        });
+    </script>
 </body>
 </html>

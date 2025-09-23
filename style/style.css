@@ -13,7 +13,6 @@ body {
     flex-direction: column;
 }
 
-
 .top-controls {
     display: flex;
     justify-content: space-between; /* trái & phải */
@@ -33,7 +32,6 @@ body {
     align-items: center;
 }
 
-
 /* Container chính */
 .container {
     flex: 1;
@@ -46,7 +44,6 @@ body {
     padding: 20px;
     box-sizing: border-box;
 }
-
 
 /* Form & Bảng full width */
 .form-section, .table-section {
@@ -162,7 +159,6 @@ th, td {
     background-color: #fff;
 }
 
-
 #data-table th, #data-table td {
     border: 1px solid #333;
     padding: 12px;
@@ -221,18 +217,6 @@ th, td {
     background-color: #f9f9f9;
 }
 
-/* Style cho thông báo lỗi */
-/* .error-message {
-    text-align: center;
-    padding: 20px;
-    color: #666;
-    font-style: italic;
-    background-color: #f9f9f9;
-    border: 1px solid #333;
-    border-radius: 6px;
-    margin-top: 10px;
-} */
-
 /* THÊM STYLE CHO BẢNG KHI CÓ DỮ LIỆU NHƯNG TRỐNG SAU KHI LỌC */
 .no-data-row {
     background-color: #f9f9f9;
@@ -267,6 +251,9 @@ th, td {
 #refreshButton:hover { background-color: #1976D2; }
 #exportButton { background-color: #4CAF50; }
 #exportButton:hover { background-color: #388e3c; }
+/* Thêm style cho nút PowerPoint */
+#exportPptxButton { background-color: #d73527; }
+#exportPptxButton:hover { background-color: #b71c1c; }
 #deleteButton { background-color: #f44336; }
 #deleteButton:hover { background-color: #d32f2f; }
 #deleteButton:disabled {

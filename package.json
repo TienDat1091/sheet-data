@@ -13,6 +13,8 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "googleapis": "^159.0.0"
+    "googleapis": "^159.0.0",
+    "html-to-pptx": "^0.0.6",
+    "pptxgenjs": "^4.0.1"
   }
 }
