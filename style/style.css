@@ -202,9 +202,11 @@ th, td {
 }
 
 /* Điều chỉnh chiều rộng cột */
-#data-table th:nth-child(1), #data-table td:nth-child(1) { width: 80px; }
-#data-table th:nth-child(6), #data-table td:nth-child(6) { min-width: 220px; }
-#data-table th:nth-child(7), #data-table td:nth-child(7) {width: 400px; /* tăng chiều rộng cột ảnh */}
+#data-table th:nth-child(1), #data-table td:nth-child(1) { width: 100px; }
+#data-table th:nth-child(2), #data-table td:nth-child(2) { width: 70px; }
+#data-table th:nth-child(5), #data-table td:nth-child(5) { width: 300px; }
+#data-table th:nth-child(6), #data-table td:nth-child(6) { min-width: 150px; }
+#data-table th:nth-child(7), #data-table td:nth-child(7) {width: 210px; /* tăng chiều rộng cột ảnh */}
 
 /* THÊM STYLE CHO TRƯỜNG HỢP BẢNG TRỐNG */
 .empty-table {
