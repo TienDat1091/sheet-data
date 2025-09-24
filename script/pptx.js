@@ -52,7 +52,7 @@ function exportToPptx() {
             const slide = pptx.addSlide();
             slide.background = { color: 'FAFAFA' };
 
-            slide.addText(`Lỗi #${index + 1}: ${row[0] || 'N/A'}`, {
+            slide.addText(`ISSUE #${index + 1}: ${row[0] || 'N/A'}`, {
                 x: 0.7, y: 0.4, w: 8.6, h: 0.7,
                 fontSize: 22, bold: true, fontFace: 'Arial', color: '1976D2', align: 'left'
             });
@@ -121,35 +121,35 @@ function exportToPptx() {
             }
 
             // Thời gian
-            if (row[5]) {
-                slide.addText('Thời gian:', {
-                    x: 0.7, y: yPos, w: 2, h: 0.4,
-                    fontSize: 13, bold: true, color: '424242'
-                });
-                slide.addText(formatDateTime(row[5]), {
-                    x: 2.9, y: yPos, w: 6.4, h: 0.4,
-                    fontSize: 12, color: '555555'
-                });
-                yPos += 0.6;
-            }
+            // if (row[5]) {
+            //     slide.addText('Thời gian:', {
+            //         x: 0.7, y: yPos, w: 2, h: 0.4,
+            //         fontSize: 13, bold: true, color: '424242'
+            //     });
+            //     slide.addText(formatDateTime(row[5]), {
+            //         x: 2.9, y: yPos, w: 6.4, h: 0.4,
+            //         fontSize: 12, color: '555555'
+            //     });
+            //     yPos += 0.6;
+            // }
 
             // Link ảnh
-            if (row[6] && row[6].toString().trim()) {
-                slide.addText('Link ảnh:', {
-                    x: 0.7, y: yPos, w: 2, h: 0.4,
-                    fontSize: 13, bold: true, color: '424242'
-                });
-                const imageLinks = row[6].toString().split(/\r?\n|,|;/)
-                    .map(l => l.trim()).filter(l => l).slice(0, 3);
-                imageLinks.forEach((link, linkIndex) => {
-                    slide.addText(link, {
-                        x: 2.9, y: yPos + (linkIndex * 0.3),
-                        w: 6.4, h: 0.3,
-                        fontSize: 10, color: '1976D2', hyperlink: { url: link }
-                    });
-                });
-                yPos += (imageLinks.length * 0.3) + 0.3;
-            }
+            // if (row[6] && row[6].toString().trim()) {
+            //     slide.addText('Link ảnh:', {
+            //         x: 0.7, y: yPos, w: 2, h: 0.4,
+            //         fontSize: 13, bold: true, color: '424242'
+            //     });
+            //     const imageLinks = row[6].toString().split(/\r?\n|,|;/)
+            //         .map(l => l.trim()).filter(l => l).slice(0, 3);
+            //     imageLinks.forEach((link, linkIndex) => {
+            //         slide.addText(link, {
+            //             x: 2.9, y: yPos + (linkIndex * 0.3),
+            //             w: 6.4, h: 0.3,
+            //             fontSize: 10, color: '1976D2', hyperlink: { url: link }
+            //         });
+            //     });
+            //     yPos += (imageLinks.length * 0.3) + 0.3;
+            // }
 
             slide.addText(`${index + 2} / ${dataRows.length + 1}`, {
                 x: 8.6, y: 6.8, w: 0.8, h: 0.3,
@@ -157,8 +157,8 @@ function exportToPptx() {
             });
         });
 
-        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-        const fileName = `Note_Report_${timestamp}.pptx`;
+        // const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const fileName = `Note_Report_W.pptx`;
 
         pptx.writeFile({ fileName }).then(() => {
             showNotification(`Đã xuất thành công file ${fileName}!`);

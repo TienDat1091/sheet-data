@@ -43,9 +43,9 @@
             <input type="datetime-local" name="timestamp" id="timestamp" required>
 
             <!-- Thêm ô upload ảnh -->
-            <label for="images">Tải ảnh lên:</label>
+            <!-- <label for="images">Tải ảnh lên:</label>
             <input type="file" name="images[]" id="images" accept="image/*" multiple>
-            <div id="image-preview" style="margin-top:10px;"></div>
+            <div id="image-preview" style="margin-top:10px;"></div> -->
 
             <!-- Vẫn giữ ô nhập link ảnh nếu muốn -->
             <textarea name="link" placeholder="Link ảnh (Nếu có)"></textarea>
@@ -67,7 +67,12 @@
             <button id="refreshButton">Làm mới</button>
             <button id="exportButton">Xuất Excel</button>
             <button id="exportPptxButton">Xuất PowerPoint</button>
+            <button id="getPictureButton" onclick="window.location.href='get_picture.html'">Get picture</button>
         </div>
+
+        <style>
+
+</style>
 
         <!-- Filter bên phải -->
         <div class="filter-container">

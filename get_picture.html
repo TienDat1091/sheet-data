@@ -47,14 +47,25 @@
   </style>
 </head>
 <body>
+ <div class="header-container">
   <h2>📒 Ghi chú kèm ảnh</h2>
+  <button id="getPictureButton" onclick="window.location.href='index.html'">Back</button>
+  </div>
   <input id="title" placeholder="Tiêu đề ghi chú">
   <textarea id="content" placeholder="Nội dung ghi chú"></textarea>
   <input type="file" id="image" accept="image/*">
   <button id="addBtn" onclick="addNote()" disabled>Thêm ghi chú</button>
-
   <h3>Danh sách ghi chú</h3>
   <div id="notes"></div>
+
+  <style>
+    .header-container {
+      display: flex;
+      justify-content: space-between; /* 2 bên */
+      align-items: center;            /* canh giữa theo chiều dọc */
+      margin-bottom: 20px;
+    }
+  </style>
 
   <script>
     let db;

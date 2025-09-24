@@ -1,3 +1,109 @@
+// --- Hàm đóng modal ---
+function closeModal() {
+    const modal = document.getElementById('imageModal');
+    if (modal) {
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+}
+
+// --- Hàm mở modal để xem ảnh phóng to ---
+function openModal(imageSrc) {
+    // Tạo modal nếu chưa có
+    let modal = document.getElementById('imageModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'imageModal';
+        modal.style.cssText = `
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            transition: opacity 0.3s ease-in-out;
+        `;
+        
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90%;
+            max-height: 90%;
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        `;
+        
+        const closeButton = document.createElement('button');
+        closeButton.innerHTML = '&times;';
+        closeButton.style.cssText = `
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 18px;
+            cursor: pointer;
+            font-weight: bold;
+        `;
+        
+        const modalImage = document.createElement('img');
+        modalImage.id = 'modalImage';
+        modalImage.style.cssText = `
+            width: 100%;
+            height: auto;
+            max-width: 80vw;
+            max-height: 80vh;
+            object-fit: contain;
+            border-radius: 4px;
+        `;
+        modalImage.alt = 'Enlarged image';
+        
+        modalContent.appendChild(closeButton);
+        modalContent.appendChild(modalImage);
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+        
+        // Thêm event listeners
+        closeButton.addEventListener('click', closeModal);
+        
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    }
+    
+    // Hiển thị modal
+    const modalImage = document.getElementById('modalImage');
+    modal.style.display = 'block';
+    modalImage.src = imageSrc;
+    
+    // Thêm animation fade in
+    modal.style.opacity = '0';
+    setTimeout(() => {
+        modal.style.opacity = '1';
+    }, 10);
+}
+
 // Hiển thị thông báo
 
 // Loader
@@ -65,19 +171,28 @@ function displayData(data, page = 1) {
     } else {
         paginatedData.forEach(row => {
             const tr = document.createElement('tr');
-                        row.forEach((cell, index) => {
+            row.forEach((cell, index) => {
                 const td = document.createElement('td');
 
                 // Cột link ảnh (index = 6)
                 if (index === 6 && cell) {
                     let links = cell.split(/\r?\n|,|;/).map(l => l.trim()).filter(l => l);
-                    td.innerHTML = links.map(l => `<a href="${l}" target="_blank">${l}</a>`).join('<br>');
+                    links.forEach((link, linkIndex) => {
+                        const img = document.createElement('img');
+                        img.src = link;
+                        img.alt = 'image';
+                        img.style.cssText = 'max-width:100px;max-height:100px;cursor:pointer;display:block;margin-bottom:5px;border-radius:4px;';
+                        img.classList.add('clickable-img');
+                        
+                        // Thêm event listener thay vì onclick
+                        img.addEventListener('click', function() {
+                            openModal(link);
+                        });
+                        
+                        td.appendChild(img);
+                    });
                 } 
                 // Cột H chứa ảnh (index = 7)
-                else if (index === 7 && cell) {
-                    let imgs = cell.split(/\r?\n|,|;/).map(l => l.trim()).filter(l => l);
-                    td.innerHTML = imgs.map(src => `<img src="${src}" alt="image" style="max-width:100px;max-height:100px;">`).join('<br>');
-                } 
                 else {
                     td.textContent = cell || '';
                 }
@@ -89,7 +204,7 @@ function displayData(data, page = 1) {
     }
 
     // Phân trang
-const totalPages = Math.ceil((data.length - 1) / itemsPerPage);
+    const totalPages = Math.ceil((data.length - 1) / itemsPerPage);
     if (totalPages > 1) {
         const prevButton = document.createElement('button');
         prevButton.textContent = 'Previous';
