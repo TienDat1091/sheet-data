@@ -423,7 +423,7 @@ async function exportToPptx() {
         const slide = pptx.addSlide();
         slide.addText(`${idx+1}. ${n.title}`, { x:0.5, y:0.3, w:9, h:0.6, fontSize:18, bold:true });
         slide.addText(`${new Date(n.timestamp).toLocaleString('vi-VN')}`, { x:0.5, y:0.9, w:9, h:0.3, fontSize:10 });
-        slide.addText(`Nguyên nhân: ${truncateText(n.reason,180)}`, { x:0.5, y:1.3, w:9, h:0.4, fontSize:12 });
+        slide.addText(`Nguyên nhân: ${truncateText(n.reason,180)}`, { x:0.5, y:1.3, w:9, h:0.4, fontSize:12, bold:true });
         slide.addText('Nội dung:', { x:0.5, y:1.7, w:9, h:0.25, fontSize:12, bold:true });
         const contentHeight = Math.max(0.6, Math.ceil((n.content||'').length / 120) * 0.25);
         slide.addText(truncateText(n.content || '', 800), { x:0.5, y:2.0, w:9, h:contentHeight, fontSize:11, valign:'top' });
