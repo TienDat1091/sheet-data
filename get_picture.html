@@ -1,169 +1,181 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Ghi chú kèm ảnh (IndexedDB)</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background: #f5f5f5;
-    }
-    input, textarea {
-      width: 100%;
-      margin: 5px 0;
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    button {
-      margin: 5px 0;
-      padding: 8px 12px;
-      background: #1976d2;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button:disabled {
-      background: #9e9e9e;
-      cursor: not-allowed;
-    }
-    button:hover:enabled { background: #1565c0; }
-    .note {
-      background: white;
-      padding: 10px;
-      margin: 8px 0;
-      border-radius: 6px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .note h3 { margin: 0 0 5px 0; }
-    img {
-      max-width: 200px;
-      display: block;
-      margin-top: 5px;
-      border-radius: 4px;
-    }
-  </style>
+  <meta charset="utf-8" />
+  <title>ISSUE_CHECKING_NEW</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- SheetJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- PptxGenJS -->
+  <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+
+  <link rel="stylesheet" href="style\style_get_picture.css" />
 </head>
 <body>
- <div class="header-container">
-  <h2>📒 Ghi chú kèm ảnh</h2>
-  <button id="getPictureButton" onclick="window.location.href='index.html'">Back</button>
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div class="title">NOTE REPORT</div>
+      <div class="small-muted">Thời gian hiện tại: <span id="currentTime"></span></div>
+    </div>
+
+    <div class="controls">
+      <button class="btn success" id="exportExcelBtn">Xuất Excel</button>
+      <button class="btn danger" id="exportPptBtn">Xuất PowerPoint</button>
+      <button class="btn" id="refreshDbBtn">Làm mới DB</button>
+      <button class="btn" onclick="window.location.href='index.html'">Back</button>
+    </div>
   </div>
-  <input id="title" placeholder="Tiêu đề ghi chú">
-  <textarea id="content" placeholder="Nội dung ghi chú"></textarea>
-  <input type="file" id="image" accept="image/*">
-  <button id="addBtn" onclick="addNote()" disabled>Thêm ghi chú</button>
-  <h3>Danh sách ghi chú</h3>
-  <div id="notes"></div>
 
-  <style>
-    .header-container {
-      display: flex;
-      justify-content: space-between; /* 2 bên */
-      align-items: center;            /* canh giữa theo chiều dọc */
-      margin-bottom: 20px;
-    }
-  </style>
+  <!-- Form thêm -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+      <strong>Thêm ghi chú</strong>
+      <div class="small-muted">Bạn có thể kéo-thả, paste (Ctrl+V) hoặc chọn file</div>
+    </div>
 
-  <script>
-    let db;
+    <div style="height:10px"></div>
 
-    // --- Mở IndexedDB ---
-    let request = indexedDB.open("MyNotesDB", 2);
+    <div class="form-grid">
+      <!-- <input type="text" id="title" placeholder="Vấn đề lỗi" /> -->
+         <select id="title" required>
+                <option value="">Chọn mô tả lỗi</option>
+                <option value="PM_MO">PM_MO</option>
+                <option value="SO">SO</option>
+                <option value="LAB_PRINT">LAB_PRINT</option>
+                <option value="WET">WET</option>
+                <option value="REPAIR">REPAIR</option>
+                <option value="QUERY">QUERY</option>
+                <option value="RATESET">RATESET</option>
+                <option value="IOTYPE">IOTYPE</option>
+                <option value="WKTYPE">WKTYPE</option>
+                <option value="ISSUE">ISSUE</option>
+                <option value="OTHER">OTHER.....</option>
+            </select>
+      <input type="text" id="reason" placeholder="Tiêu đề mail" />
+      <input type="text" id="emailTitle" placeholder="Tiêu đề email (tùy chọn)" class="full" />
+      <textarea id="content" placeholder="Nội dung chi tiết (bắt buộc)" class="full"></textarea>
 
-    request.onupgradeneeded = function(event) {
-      db = event.target.result;
-      if (!db.objectStoreNames.contains("notes")) {
-        db.createObjectStore("notes", { keyPath: "id", autoIncrement: true });
-      }
-    };
 
-    request.onsuccess = function(event) {
-      db = event.target.result;
-      document.getElementById("addBtn").disabled = false; // bật nút sau khi DB sẵn sàng
-      displayNotes();
-    };
+      <div class="full">
+        <div class="image-upload-area" id="imageUploadArea">
+          <div>
+            <label for="image" style="cursor:pointer; color:var(--accent); font-weight:600;">Chọn ảnh từ máy</label>
+            <input type="file" id="image" accept="image/*" multiple style="display:none" />
+            <span style="margin-left:8px;" class="small-muted">Kéo-thả hoặc paste (Ctrl+V) ảnh vào đây.</span>
+          </div>
+          <div id="imagePreview" class="images-grid"></div>
+        </div>
+      </div>
 
-    request.onerror = function(event) {
-      console.error("Lỗi mở DB:", event.target.error);
-      alert("Không mở được CSDL!");
-    };
 
-    // --- Thêm ghi chú ---
-    function addNote() {
-      if (!db) {
-        alert("CSDL chưa sẵn sàng, hãy thử lại!");
-        return;
-      }
+      <div class="full" style="display:flex; gap:8px;">
+        <button class="btn" id="addBtn" disabled>Thêm ghi chú</button>
+        <button class="btn secondary" id="clearImagesBtn">Xóa ảnh đã chọn</button>
+        <button class="btn danger" id="resetFormBtn">Làm mới form</button>
+      </div>
+    </div>
+  </div>
 
-      let title = document.getElementById("title").value.trim();
-      let content = document.getElementById("content").value.trim();
-      let fileInput = document.getElementById("image");
-      let file = fileInput.files[0];
+  <!-- Filters -->
+  <div class="card">
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+      <div>
+        <label>Từ: <input type="date" id="filterStart"></label>
+      </div>
+      <div>
+        <label>Đến: <input type="date" id="filterEnd"></label>
+      </div>
+      <div>
+        <button class="btn" id="filterBtn">Lọc</button>
+        <button class="btn secondary" id="resetFilterBtn">Reset bộ lọc</button>
+      </div>
+      <div style="margin-left:auto;" id="notesStats" class="small-muted"></div>
+    </div>
+  </div>
 
-      if (!title || !content) {
-        alert("Vui lòng nhập tiêu đề và nội dung!");
-        return;
-      }
+  <!-- Danh sách ghi chú -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0;">Notes List</h3>
+      <div class="bulk-actions" id="bulkActions" style="display:none;">
+        <button class="btn secondary" id="selectAllBtn">Chọn tất cả</button>
+        <button class="btn danger" id="bulkDeleteBtn">Xóa đã chọn</button>
+        <div id="selectedCount" class="small-muted"></div>
+      </div>
+    </div>
 
-      if (file) {
-        let reader = new FileReader();
-        reader.onload = function(e) {
-          saveNote(title, content, e.target.result);
-        };
-        reader.readAsDataURL(file); // đọc ảnh thành base64
-      } else {
-        saveNote(title, content, null);
-      }
-    }
+    <!-- Search on top of list -->
+    <div class="search-top">
+      <input type="search" id="searchInput" placeholder="Tìm (tiêu đề, nguyên nhân, tiêu đề email, nội dung, ngày)..." />
+      <button class="btn ghost" id="clearSearchBtn">Xóa</button>
+    </div>
 
-    // --- Hàm lưu note vào DB ---
-    function saveNote(title, content, imageData) {
-      let tx = db.transaction("notes", "readwrite");
-      let store = tx.objectStore("notes");
-      store.add({ title: title, content: content, image: imageData });
+    <div id="notes"></div>
 
-      tx.oncomplete = () => {
-        document.getElementById("title").value = "";
-        document.getElementById("content").value = "";
-        document.getElementById("image").value = "";
-        displayNotes();
-      };
-    }
+    <div class="pagination" id="pagination"></div>
+  </div>
 
-    // --- Hiển thị ghi chú ---
-    function displayNotes() {
-      let tx = db.transaction("notes", "readonly");
-      let store = tx.objectStore("notes");
-      let req = store.getAll();
+  <!-- Modal xem ảnh -->
+  <div class="modal" id="imageModal" aria-hidden="true">
+    <div class="content" id="imageModalContent" tabindex="-1">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="small-muted" id="modalCounter"></div>
+        <div>
+          <button class="btn" id="modalPrevBtn">Trước</button>
+          <button class="btn" id="modalNextBtn">Tiếp</button>
+          <button class="btn secondary" id="modalCloseBtn">Đóng</button>
+        </div>
+      </div>
+      <div style="height:10px"></div>
+      <img id="modalImage" class="big-image" src="" alt="Ảnh phóng to" />
+    </div>
+  </div>
 
-      req.onsuccess = function() {
-        let notes = req.result;
-        let notesDiv = document.getElementById("notes");
-        notesDiv.innerHTML = "";
-        notes.forEach(note => {
-          let div = document.createElement("div");
-          div.className = "note";
-          div.innerHTML = `
-            <h3>${note.title}</h3>
-            <p>${note.content}</p>
-            ${note.image ? `<img src="${note.image}">` : ""}
-            <button onclick="deleteNote(${note.id})">🗑 Xóa</button>
-          `;
-          notesDiv.appendChild(div);
-        });
-      };
-    }
+  <!-- Edit modal -->
+ <!-- Edit modal -->
+<!-- Edit modal -->
+<div class="modal" id="editModal" aria-hidden="true">
+  <div class="content" id="editModalContent" tabindex="0">
+    <!-- Nút X -->
+    <button class="modal-close" id="editModalCloseBtn" aria-label="Đóng">&times;</button>
 
-    // --- Xóa ghi chú ---
-    function deleteNote(id) {
-      let tx = db.transaction("notes", "readwrite");
-      let store = tx.objectStore("notes");
-      store.delete(id);
-      tx.oncomplete = () => displayNotes();
-    }
-  </script>
+    <h3>Cập nhật ghi chú</h3>
+    <div style="display:grid; gap:8px; grid-template-columns: 1fr 1fr;">
+      <input id="editTitle" type="text" placeholder="Tiêu đề (bắt buộc)" />
+      <input id="editReason" type="text" placeholder="Nguyên nhân (bắt buộc)" />
+      <input id="editEmailTitle" type="text" placeholder="Tiêu đề email (tùy chọn)" style="grid-column:1/-1"/>
+      <textarea id="editContent" placeholder="Nội dung (bắt buộc)" style="grid-column:1/-1;"></textarea>
+
+      <div style="grid-column:1/-1;">
+        <div class="small-muted">Ảnh hiện tại (bấm X để xoá):</div>
+        <div id="editExistingImages" class="images-grid" style="margin-top:8px;"></div>
+      </div>
+
+      <div style="grid-column:1/-1;">
+        <div class="small-muted">Thêm ảnh mới (có thể paste ảnh vào cửa sổ chỉnh sửa):</div>
+        <input type="file" id="editImageInput" multiple accept="image/*" />
+        <div id="editNewPreview" class="images-grid" style="margin-top:8px;"></div>
+      </div>
+
+      <div style="grid-column:1/-1; display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
+        <button class="btn" id="saveEditBtn">Lưu thay đổi</button>
+        <button class="btn secondary" id="cancelEditBtn">Hủy</button>
+      </div>
+    </div>
+  </div>
+</div>
+  <!-- Confirm modal for DB reset -->
+  <div class="modal" id="confirmResetModal" aria-hidden="true">
+    <div class="content" style="max-width:480px;" id="confirmResetModalContent">
+      <h3>Xác nhận làm mới dữ liệu</h3>
+      <p style="color:var(--danger); font-weight:700;">Hành động này sẽ xóa toàn bộ dữ liệu. Không thể hoàn tác.</p>
+      <div style="display:flex; gap:8px; justify-content:center; margin-top:8px;">
+        <button class="btn danger" id="confirmResetBtn">Xóa toàn bộ</button>
+        <button class="btn secondary" id="cancelResetBtn">Hủy</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script\get_picture.js"></script>
 </body>
 </html>
