@@ -42,7 +42,7 @@ async function exportToPptx() {
       const contentStartX = 0.5;
       for (const [idx, n] of notes.slice().reverse().entries()) {
         const slide = pptx.addSlide();
-        slide.addText(`${idx + 1}. ${n.title} ISSUE`, {x:0.5,y:0.3,w:9,h:0.6,fontSize:18,bold:true}); 
+        slide.addText(`${idx + 1}. ${n.title}`, {x:0.5,y:0.3,w:9,h:0.6,fontSize:18,bold:true}); 
         slide.addText(`Subject: ${truncateText(n.emailTitle,180)}`, {x:0.5,y:1.0,w:9,h:0.4,fontSize:12,bold:true});
         slide.addText(`Why: ${truncateText(n.reason,180)}`, {x:0.5,y:1.5,w:9,h:0.4,fontSize:12,bold:true}); 
         slide.addText('How:', {x:0.5,y:2.0,w:9,h:0.25,fontSize:12,bold:true}); 
