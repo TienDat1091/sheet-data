@@ -67,11 +67,10 @@
         </div>
       </div>
 
-
       <div class="full" style="display:flex; gap:8px;">
-        <button class="btn" id="addBtn" disabled>Thêm ghi chú</button>
-        <button class="btn secondary" id="clearImagesBtn">Xóa ảnh đã chọn</button>
-        <button class="btn danger" id="resetFormBtn">Làm mới form</button>
+        <button class="btn" id="addBtn" disabled>Thêm</button>
+        <button class="btn secondary" id="clearImagesBtn">Xóa ảnh</button>
+        <button class="btn danger" id="resetFormBtn">Làm mới</button>
       </div>
     </div>
   </div>
@@ -141,7 +140,21 @@
 
     <h3>Cập nhật ghi chú</h3>
     <div style="display:grid; gap:8px; grid-template-columns: 1fr 1fr;">
-      <input id="editTitle" type="text" placeholder="Tiêu đề (bắt buộc)" />
+      <!-- <input id="editTitle" type="text" placeholder="Tiêu đề (bắt buộc)" /> -->
+       <select id="editTitle" required>
+                <option value="">Chọn mô tả lỗi</option>
+                <option value="PM_MO">PM_MO</option>
+                <option value="SO">SO</option>
+                <option value="LAB_PRINT">LAB_PRINT</option>
+                <option value="WET">WET</option>
+                <option value="REPAIR">REPAIR</option>
+                <option value="QUERY">QUERY</option>
+                <option value="RATESET">RATESET</option>
+                <option value="IOTYPE">IOTYPE</option>
+                <option value="WKTYPE">WKTYPE</option>
+                <option value="ISSUE">ISSUE</option>
+                <option value="OTHER">OTHER.....</option>
+            </select>
       <input id="editReason" type="text" placeholder="Nguyên nhân (bắt buộc)" />
       <input id="editEmailTitle" type="text" placeholder="Tiêu đề email (tùy chọn)" style="grid-column:1/-1"/>
       <textarea id="editContent" placeholder="Nội dung (bắt buộc)" style="grid-column:1/-1;"></textarea>
