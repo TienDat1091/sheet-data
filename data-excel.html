@@ -91,7 +91,7 @@
         const data = await response.json();
         const values = data.values || [];
         if (values.length <= 1) {
-          errorDiv.textContent = 'Không có dữ liệu trong Google Sheet.';
+          errorDiv.textContent = 'Không có dữ liệu.';
           return;
         }
         errorDiv.textContent = '';
@@ -100,7 +100,7 @@
         renderTable(allData);
       } catch (err) {
         console.error(err);
-        errorDiv.textContent = 'Lỗi khi tải dữ liệu từ Google Sheets.';
+        errorDiv.textContent = 'Lỗi khi tải dữ liệu';
       }
     }
 
