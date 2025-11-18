@@ -54,8 +54,23 @@ button.btn {
   transition: background 0.2s, transform 0.1s;
 }
 
+button.btn.ai{
+  background: hsl(224, 100%, 50%);
+}
+
+button.btn.ref{
+  background: hsl(50, 100%, 56%);
+}
+
+button.btn.pdfm{
+  background: hsl(7, 100%, 50%);
+}
+
+button.btn.todolist{
+  background: hwb(299 2% 3% / 0.93);
+}
+
 button.btn:hover {
-  background: #2563eb; /* Xanh đậm hơn khi hover */
   transform: translateY(-1px);
 }
 
@@ -64,15 +79,15 @@ button.btn.success {
 }
 
 button.btn.success:hover {
-  background: #16a34a; /* Đậm hơn khi hover */
+  
 }
 
 button.btn.secondary {
-  background: var(--secondary);
+  background: hsl(123, 71%, 49%);
 }
 
 button.btn.secondary:hover {
-  background: #4b5563; /* Xám đậm hơn khi hover */
+  background: #0fc731; /* Xám đậm hơn khi hover */
 }
 
 button.btn.danger {
@@ -91,8 +106,9 @@ button.btn.ghost {
 
 button.btn.ghost:hover {
   background: rgba(59, 130, 246, 0.1);
-  color: #2563eb;
+  color: #eb2525;
 }
+
 
 .card {
   background: var(--card);

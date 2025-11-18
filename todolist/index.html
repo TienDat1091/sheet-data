@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo List App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 500px;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        #todoInput {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        #todoInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        #addBtn {
+            padding: 12px 25px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        #addBtn:hover {
+            background: #5568d3;
+        }
+
+        .todo-list {
+            list-style: none;
+        }
+
+        .todo-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+
+        .todo-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .todo-item.completed {
+            background: #e8f5e9;
+        }
+
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        .todo-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .todo-text {
+            flex: 1;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .delete-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .delete-btn:hover {
+            background: #e84118;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-size: 18px;
+        }
+
+        .stats {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Todo List</h1>
+        
+        <div class="input-section">
+            <input 
+                type="text" 
+                id="todoInput" 
+                placeholder="Thêm công việc mới..."
+                autocomplete="off"
+            >
+            <button id="addBtn">Thêm</button>
+        </div>
+
+        <ul class="todo-list" id="todoList"></ul>
+
+        <div class="stats" id="stats">
+            <span id="totalTasks">0</span> công việc - 
+            <span id="completedTasks">0</span> hoàn thành
+        </div>
+    </div>
+
+    <script>
+        const todoInput = document.getElementById('todoInput');
+        const addBtn = document.getElementById('addBtn');
+        const todoList = document.getElementById('todoList');
+        const totalTasksEl = document.getElementById('totalTasks');
+        const completedTasksEl = document.getElementById('completedTasks');
+
+        let todos = [];
+        let db;
+
+        // Khởi tạo IndexedDB
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('TodoDB', 1);
+
+                request.onerror = () => {
+                    console.error('Không thể mở database');
+                    reject(request.error);
+                };
+
+                request.onsuccess = () => {
+                    db = request.result;
+                    console.log('Database đã sẵn sàng');
+                    resolve(db);
+                };
+
+                request.onupgradeneeded = (event) => {
+                    db = event.target.result;
+                    
+                    if (!db.objectStoreNames.contains('todos')) {
+                        const objectStore = db.createObjectStore('todos', { 
+                            keyPath: 'id', 
+                            autoIncrement: true 
+                        });
+                        objectStore.createIndex('text', 'text', { unique: false });
+                        objectStore.createIndex('completed', 'completed', { unique: false });
+                        console.log('Object store đã được tạo');
+                    }
+                };
+            });
+        }
+
+        // Lấy tất cả todos từ IndexedDB
+        function getAllTodos() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['todos'], 'readonly');
+                const objectStore = transaction.objectStore('todos');
+                const request = objectStore.getAll();
+
+                request.onsuccess = () => {
+                    resolve(request.result);
+                };
+
+                request.onerror = () => {
+                    reject(request.error);
+                };
+            });
+        }
+
+        // Thêm todo vào IndexedDB
+        function addTodoDB(todo) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['todos'], 'readwrite');
+                const objectStore = transaction.objectStore('todos');
+                const request = objectStore.add(todo);
+
+                request.onsuccess = () => {
+                    resolve(request.result);
+                };
+
+                request.onerror = () => {
+                    reject(request.error);
+                };
+            });
+        }
+
+        // Cập nhật todo trong IndexedDB
+        function updateTodoDB(todo) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['todos'], 'readwrite');
+                const objectStore = transaction.objectStore('todos');
+                const request = objectStore.put(todo);
+
+                request.onsuccess = () => {
+                    resolve(request.result);
+                };
+
+                request.onerror = () => {
+                    reject(request.error);
+                };
+            });
+        }
+
+        // Xóa todo khỏi IndexedDB
+        function deleteTodoDB(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['todos'], 'readwrite');
+                const objectStore = transaction.objectStore('todos');
+                const request = objectStore.delete(id);
+
+                request.onsuccess = () => {
+                    resolve();
+                };
+
+                request.onerror = () => {
+                    reject(request.error);
+                };
+            });
+        }
+
+        function updateStats() {
+            const total = todos.length;
+            const completed = todos.filter(todo => todo.completed).length;
+            totalTasksEl.textContent = total;
+            completedTasksEl.textContent = completed;
+        }
+
+        function renderTodos() {
+            if (todos.length === 0) {
+                todoList.innerHTML = '<div class="empty-state">Chưa có công việc nào. Hãy thêm công việc mới!</div>';
+                updateStats();
+                return;
+            }
+
+            todoList.innerHTML = '';
+            
+            todos.forEach((todo) => {
+                const li = document.createElement('li');
+                li.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+                
+                li.innerHTML = `
+                    <input 
+                        type="checkbox" 
+                        class="todo-checkbox" 
+                        ${todo.completed ? 'checked' : ''}
+                        onchange="toggleTodo(${todo.id})"
+                    >
+                    <span class="todo-text">${todo.text}</span>
+                    <button class="delete-btn" onclick="deleteTodo(${todo.id})">Xóa</button>
+                `;
+                
+                todoList.appendChild(li);
+            });
+
+            updateStats();
+        }
+
+        async function addTodo() {
+            const text = todoInput.value.trim();
+            
+            if (text === '') {
+                alert('Vui lòng nhập nội dung công việc!');
+                return;
+            }
+
+            const newTodo = {
+                text: text,
+                completed: false,
+                createdAt: new Date().toISOString()
+            };
+
+            try {
+                const id = await addTodoDB(newTodo);
+                newTodo.id = id;
+                todos.push(newTodo);
+                
+                todoInput.value = '';
+                todoInput.focus();
+                renderTodos();
+            } catch (error) {
+                console.error('Lỗi khi thêm todo:', error);
+                alert('Không thể thêm công việc. Vui lòng thử lại!');
+            }
+        }
+
+        async function toggleTodo(id) {
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                todo.completed = !todo.completed;
+                
+                try {
+                    await updateTodoDB(todo);
+                    renderTodos();
+                } catch (error) {
+                    console.error('Lỗi khi cập nhật todo:', error);
+                    alert('Không thể cập nhật công việc. Vui lòng thử lại!');
+                }
+            }
+        }
+
+        async function deleteTodo(id) {
+            if (confirm('Bạn có chắc muốn xóa công việc này?')) {
+                try {
+                    await deleteTodoDB(id);
+                    todos = todos.filter(t => t.id !== id);
+                    renderTodos();
+                } catch (error) {
+                    console.error('Lỗi khi xóa todo:', error);
+                    alert('Không thể xóa công việc. Vui lòng thử lại!');
+                }
+            }
+        }
+
+        // Khởi tạo ứng dụng
+        async function init() {
+            try {
+                await initDB();
+                todos = await getAllTodos();
+                renderTodos();
+                console.log('Đã tải', todos.length, 'công việc từ database');
+            } catch (error) {
+                console.error('Lỗi khởi tạo:', error);
+                alert('Không thể khởi tạo ứng dụng. Vui lòng kiểm tra trình duyệt có hỗ trợ IndexedDB không.');
+            }
+        }
+
+        addBtn.addEventListener('click', addTodo);
+
+        todoInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addTodo();
+            }
+        });
+
+        // Bắt đầu ứng dụng
+        init();
+    </script>
+</body>
+</html>

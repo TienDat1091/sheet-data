@@ -25,8 +25,37 @@ async function exportToPptx() {
   const tx = db.transaction('notes','readonly');
   const req = tx.objectStore('notes').getAll();
   req.onsuccess = async (e) => {
-    const notes = e.target.result || [];
-    if (!notes.length) return showNotification('Không có dữ liệu để xuất', true);
+    let notes = e.target.result || []; // Thay const bằng let
+    
+    // 🔥 THÊM PHẦN LỌC DỮ LIỆU - giống như trong displayNotes
+    // Áp dụng bộ lọc thời gian
+    if (currentFilter.start || currentFilter.end) {
+      notes = notes.filter(n => {
+        if (!n.timestamp) return false;
+        if (currentFilter.start && n.timestamp < currentFilter.start) return false;
+        if (currentFilter.end && n.timestamp > currentFilter.end) return false;
+        return true;
+      });
+    }
+    
+    // Áp dụng tìm kiếm
+    if (currentSearch) {
+      const q = currentSearch;
+      notes = notes.filter(n=>{
+        const fields = [
+          n.title||'', n.reason||'', n.emailTitle||'', n.content||'', new Date(n.timestamp||'').toLocaleString('vi-VN')
+        ].join(' ').toLowerCase();
+        return fields.indexOf(q) !== -1;
+      });
+    }
+    
+    // Sắp xếp mới nhất trước (giống displayNotes)
+    notes.sort((a,b)=> new Date(b.timestamp) - new Date(a.timestamp));
+    
+    // 🔥 KIỂM TRA XEM CÓ DỮ LIỆU SAU KHI LỌC KHÔNG
+    if (!notes.length) return showNotification('Không có dữ liệu phù hợp để xuất', true);
+    
+    // Phần còn lại giữ nguyên...
     try {
       const pptx = new PptxGenJS();
       pptx.layout = 'LAYOUT_16x9';
@@ -34,11 +63,23 @@ async function exportToPptx() {
       // Title slide
       const s0 = pptx.addSlide();
       s0.addText('Note Report W', { x:1, y:1.5, w:8, h:1, fontSize:54, align:'center' });
-      // s0.addText(`Ngày: ${new Date().toLocaleDateString('vi-VN')}`, { x:1, y:2.5, w:8, h:0.5, fontSize:12 });
+      
+      // 🔥 THÊM THÔNG TIN BỘ LỌC VÀO SLIDE TIÊU ĐỀ
+      let filterInfo = '';
+      if (currentFilter.start || currentFilter.end) {
+        const startStr = currentFilter.start ? new Date(currentFilter.start).toLocaleDateString('vi-VN') : '';
+        const endStr = currentFilter.end ? new Date(currentFilter.end).toLocaleDateString('vi-VN') : '';
+        filterInfo = ` (Từ ${startStr} đến ${endStr})`;
+      }
+      if (currentSearch) {
+        filterInfo += ` [Tìm: "${currentSearch}"]`;
+      }
+      
+      s0.addText(`Ngày xuất: ${new Date().toLocaleDateString('vi-VN')}${filterInfo}`, 
+                { x:1, y:2.5, w:8, h:0.5, fontSize:12, align: 'center' });
 
-      // For each note, create slide. We'll await image size loads so images inserted with correct w/h.
-      // Choose a content area width/height (in inches). We'll place images below text.
-      const contentAreaWidth = 9.0; // inches used for text area width
+      // For each note, create slide...
+      const contentAreaWidth = 9.0;
       const contentStartX = 0.5;
       for (const [idx, n] of notes.slice().reverse().entries()) {
         const slide = pptx.addSlide();
@@ -46,26 +87,20 @@ async function exportToPptx() {
         slide.addText(`Subject: ${truncateText(n.emailTitle,180)}`, {x:0.5,y:1.0,w:9,h:0.4,fontSize:12,bold:true});
         slide.addText(`Why: ${truncateText(n.reason,180)}`, {x:0.5,y:1.5,w:9,h:0.4,fontSize:12,bold:true}); 
         slide.addText('How:', {x:0.5,y:2.0,w:9,h:0.25,fontSize:12,bold:true}); 
-        const contentHeight = Math.max(0.6,Math.ceil((n.content||'').length/120)*0.25); slide.addText(truncateText(n.content||'',800), {x:0.5,y:2.3,w:9,h:contentHeight,fontSize:11,valign:'top'});
+        const contentHeight = Math.max(0.6,Math.ceil((n.content||'').length/120)*0.25); 
+        slide.addText(truncateText(n.content||'',800), {x:0.5,y:2.3,w:9,h:contentHeight,fontSize:11,valign:'top'});
 
         if (n.images && n.images.length > 0) {
-          // Prepare to place images below text. We'll give a max area per image block.
-          // Set max width for one image row (inches) and max height for each image cell
-          const maxRowWidth = 9.0; // inches (content area)
-          const maxImageHeight = 2.5; // inches max per image row
-          const spacing = 0.15; // inch gap between images
-
-          // compute layout: put up to 3 per row (like before), but each image will be scaled to keep ratio.
+          const maxRowWidth = 9.0;
+          const maxImageHeight = 2.5;
+          const spacing = 0.15;
           const maxPerRow = 3;
           const imgCellMaxW = (maxRowWidth - (maxPerRow - 1) * spacing) / maxPerRow;
 
-          // y start for images:
           let y = 2.0 + contentHeight + 0.2;
 
-          // For each image, load natural px size, compute target w/h in inches, and place.
           for (let iImg = 0; iImg < n.images.length; iImg++) {
             const imgData = n.images[iImg];
-            // load size
             let size;
             try {
               size = await loadImageSize(imgData);
@@ -73,21 +108,16 @@ async function exportToPptx() {
               console.warn('Không lấy được kích thước ảnh, bỏ qua', err);
               continue;
             }
-            // compute target size for cell
+            
             const col = iImg % maxPerRow;
             const row = Math.floor(iImg / maxPerRow);
-            // compute x for this column
             const x = contentStartX + col * (imgCellMaxW + spacing);
 
-            // For vertical placement, if moving to new row compute y
             if (col === 0 && iImg !== 0) {
-              // new row
               y += maxImageHeight + spacing;
             }
 
-            // Fit image into cell (imgCellMaxW x maxImageHeight) preserving aspect ratio
             const fitted = fitImageToBox(size.w, size.h, imgCellMaxW, maxImageHeight, 96);
-            // Center image in its cell horizontally/vertically
             const offsetX = x + (imgCellMaxW - fitted.w) / 2;
             const offsetY = y + (maxImageHeight - fitted.h) / 2;
 
@@ -100,7 +130,7 @@ async function exportToPptx() {
         }
       }
 
-      const fileName = `Note Report W.pptx`;
+      const fileName = `Note Report W${currentFilter.start || currentSearch ? ' ()' : ''}.pptx`;
       await pptx.writeFile({ fileName });
       showNotification('Đã xuất PowerPoint: ' + fileName);
     } catch (err) {
@@ -109,6 +139,5 @@ async function exportToPptx() {
     }
   };
 }
-
 /* utility truncate */
 function truncateText(text, maxChars) { if (!text) return ''; return text.length > maxChars ? text.slice(0, maxChars-3) + '...' : text; }

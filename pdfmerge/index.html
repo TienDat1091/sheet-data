@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Công cụ Xử lý PDF & PPTX (Merge PDF / PDF→Word / Merge PPTX)</title>
+
+<!-- Thư viện -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+/* (Giữ giao diện tương tự như bạn gửi, rút gọn chút cho ngắn) */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Segoe UI, Tahoma, Verdana, sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px;display:flex;justify-content:center;align-items:flex-start}
+.container{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.25);padding:28px;max-width:980px;width:100%}
+h1{text-align:center;color:#667eea;margin-bottom:18px}
+.tabs{display:flex;gap:10px;margin-bottom:20px;border-bottom:2px solid #eee}
+.tab{padding:12px 22px;background:none;border:none;cursor:pointer;color:#666;border-bottom:3px solid transparent;font-weight:600}
+.tab.active{color:#667eea;border-bottom-color:#667eea}
+.tab:hover{color:#764ba2}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.upload-area{border:3px dashed #667eea;border-radius:12px;padding:26px;text-align:center;cursor:pointer;margin-bottom:14px;transition:all .15s}
+.upload-area.dragover{background:#eaf0ff;transform:scale(1.01)}
+.file-list{max-height:260px;overflow:auto;margin:12px 0}
+.file-item{display:flex;justify-content:space-between;align-items:center;background:#f8f9fa;padding:10px;border-radius:8px;margin-bottom:8px}
+.remove-btn{background:#dc3545;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer}
+.action-btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:12px 18px;border-radius:10px;width:100%;font-weight:700;cursor:pointer;margin-top:8px}
+.action-btn:disabled{background:#ccc;cursor:not-allowed}
+.status{margin-top:12px;padding:10px;border-radius:8px;font-weight:600}
+.status.success{background:#d4edda;color:#155724}
+.status.error{background:#f8d7da;color:#721c24}
+.status.processing{background:#fff3cd;color:#856404}
+.single-file{background:#f8f9fa;padding:14px;border-radius:8px;margin:10px 0;text-align:center}
+.single-file-name{font-weight:600}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>📄 Công cụ Xử lý PDF & PowerPoint</h1>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('merge')">Gộp PDF</button>
+    <button class="tab" onclick="switchTab('convert')">PDF → Word</button>
+    <button class="tab" onclick="switchTab('pptx')">Gộp PowerPoint</button>
+  </div>
+
+  <!-- MERGE PDF -->
+  <div id="merge-tab" class="tab-content active">
+    <div class="upload-area" id="uploadAreaMerge">
+      <div style="font-size:36px">📁</div>
+      <p style="color:#666">Kéo thả nhiều file PDF vào đây hoặc click để chọn</p>
+      <input type="file" id="fileInputMerge" accept=".pdf" multiple style="display:none">
+    </div>
+    <div class="file-list" id="fileListMerge"></div>
+    <button class="action-btn" id="mergeBtn" disabled>Gộp tất cả PDF</button>
+    <div id="statusMerge"></div>
+  </div>
+
+  <!-- CONVERT PDF -> WORD -->
+  <div id="convert-tab" class="tab-content">
+    <div class="upload-area" id="uploadAreaConvert">
+      <div style="font-size:36px">📄</div>
+      <p style="color:#666">Chọn 1 file PDF để chuyển sang Word</p>
+      <input type="file" id="fileInputConvert" accept=".pdf" style="display:none">
+    </div>
+    <div id="selectedFileConvert"></div>
+    <button class="action-btn" id="convertBtn" disabled>Chuyển đổi sang Word</button>
+    <div id="statusConvert"></div>
+  </div>
+
+  <!-- MERGE PPTX -->
+  <div id="pptx-tab" class="tab-content">
+    <div class="upload-area" id="uploadAreaPptx">
+      <div style="font-size:36px">📊</div>
+      <p style="color:#666">Kéo thả file PowerPoint (.pptx) vào đây hoặc click để chọn</p>
+      <input type="file" id="fileInputPptx" accept=".pptx" multiple style="display:none">
+    </div>
+    <div class="file-list" id="fileListPptx"></div>
+    <button class="action-btn" id="mergePptxBtn" disabled>Gộp tất cả PowerPoint</button>
+    <div id="statusPptx"></div>
+  </div>
+</div>
+
+<script>
+/* Worker cho pdf.js */
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+let currentTab = 'merge';
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  if(tab==='merge'){ document.querySelector('.tab:nth-child(1)').classList.add('active'); document.getElementById('merge-tab').classList.add('active'); }
+  else if(tab==='convert'){ document.querySelector('.tab:nth-child(2)').classList.add('active'); document.getElementById('convert-tab').classList.add('active'); }
+  else if(tab==='pptx'){ document.querySelector('.tab:nth-child(3)').classList.add('active'); document.getElementById('pptx-tab').classList.add('active'); }
+}
+
+/* ---------- MERGE PDF (giữ nguyên chức năng) ---------- */
+const uploadAreaMerge = document.getElementById('uploadAreaMerge');
+const fileInputMerge = document.getElementById('fileInputMerge');
+const fileListMerge = document.getElementById('fileListMerge');
+const mergeBtn = document.getElementById('mergeBtn');
+const statusMerge = document.getElementById('statusMerge');
+let mergeFiles = [];
+
+uploadAreaMerge.addEventListener('click', ()=>fileInputMerge.click());
+uploadAreaMerge.addEventListener('dragover', e=>{e.preventDefault();uploadAreaMerge.classList.add('dragover')});
+uploadAreaMerge.addEventListener('dragleave', ()=>uploadAreaMerge.classList.remove('dragover'));
+uploadAreaMerge.addEventListener('drop', e=>{e.preventDefault();uploadAreaMerge.classList.remove('dragover'); addMergeFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'));});
+fileInputMerge.addEventListener('change', e=>addMergeFiles(Array.from(e.target.files)));
+
+function addMergeFiles(newFiles){
+  mergeFiles = mergeFiles.concat(newFiles);
+  updateMergeFileList();
+  updateMergeButton();
+}
+function updateMergeFileList(){
+  fileListMerge.innerHTML='';
+  mergeFiles.forEach((file,i)=>{
+    const el=document.createElement('div'); el.className='file-item';
+    el.innerHTML=`<span>${i+1}. ${escapeHtml(file.name)}</span><div><button class="remove-btn" onclick="removeMergeFile(${i})">Xóa</button></div>`;
+    fileListMerge.appendChild(el);
+  });
+}
+function removeMergeFile(i){ mergeFiles.splice(i,1); updateMergeFileList(); updateMergeButton(); }
+function updateMergeButton(){ mergeBtn.disabled = mergeFiles.length < 2; }
+
+async function mergePDFs(){
+  if(mergeFiles.length < 2) return;
+  showStatus(statusMerge,'Đang xử lý...','processing'); mergeBtn.disabled=true;
+  try{
+    const mergedPdf = await PDFLib.PDFDocument.create();
+    for (const file of mergeFiles){
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await PDFLib.PDFDocument.load(arrayBuffer);
+      const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+      copiedPages.forEach(p=>mergedPdf.addPage(p));
+    }
+    const mergedPdfBytes = await mergedPdf.save();
+    const blob = new Blob([mergedPdfBytes], {type:'application/pdf'});
+    downloadBlob(blob,'merged.pdf');
+    showStatus(statusMerge,'✅ Gộp file thành công! File đã được tải xuống.','success');
+  }catch(err){
+    showStatus(statusMerge,'❌ Có lỗi: '+err.message,'error');
+    console.error(err);
+  }finally{ mergeBtn.disabled=false; }
+}
+mergeBtn.addEventListener('click', mergePDFs);
+
+/* ---------- CONVERT PDF -> DOCX (giữ nguyên) ---------- */
+const uploadAreaConvert = document.getElementById('uploadAreaConvert');
+const fileInputConvert = document.getElementById('fileInputConvert');
+const selectedFileConvert = document.getElementById('selectedFileConvert');
+const convertBtn = document.getElementById('convertBtn');
+const statusConvert = document.getElementById('statusConvert');
+let convertFile = null;
+
+uploadAreaConvert.addEventListener('click', ()=>fileInputConvert.click());
+uploadAreaConvert.addEventListener('dragover', e=>{e.preventDefault();uploadAreaConvert.classList.add('dragover')});
+uploadAreaConvert.addEventListener('dragleave', ()=>uploadAreaConvert.classList.remove('dragover'));
+uploadAreaConvert.addEventListener('drop', e=>{e.preventDefault();uploadAreaConvert.classList.remove('dragover'); const dropped=Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'); if(dropped.length>0) setConvertFile(dropped[0]);});
+fileInputConvert.addEventListener('change', e=>{ if(e.target.files.length>0) setConvertFile(e.target.files[0]); });
+
+function setConvertFile(file){
+  convertFile = file;
+  selectedFileConvert.innerHTML = `<div class="single-file"><div class="single-file-name">📄 ${escapeHtml(file.name)}</div><button class="remove-btn" onclick="removeConvertFile()">Xóa</button></div>`;
+  convertBtn.disabled=false;
+}
+function removeConvertFile(){ convertFile=null; selectedFileConvert.innerHTML=''; convertBtn.disabled=true; fileInputConvert.value=''; }
+
+async function convertPDFtoWord(){
+  if(!convertFile) return;
+  showStatus(statusConvert,'Đang đọc và chuyển đổi PDF...','processing'); convertBtn.disabled=true;
+  try{
+    const arrayBuffer = await convertFile.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+    let fullText='';
+    for(let i=1;i<=pdf.numPages;i++){
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item=>item.str).join(' ');
+      fullText += `--- Trang ${i} ---\n${pageText}\n\n`;
+    }
+
+    const zip = new JSZip();
+    zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`);
+
+    zip.folder('_rels').file('.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`);
+
+    zip.folder('word').folder('_rels').file('document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+</Relationships>`);
+
+    const paragraphs = fullText.split('\n').map(line=>{
+      const escapedLine = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return `<w:p><w:r><w:t xml:space="preserve">${escapedLine}</w:t></w:r></w:p>`;
+    }).join('');
+    zip.folder('word').file('document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>
+<w:p><w:r><w:t>Nội dung từ: ${escapeHtml(convertFile.name)}</w:t></w:r></w:p>
+${paragraphs}
+</w:body></w:document>`);
+
+    const blob = await zip.generateAsync({type:'blob'});
+    downloadBlob(blob, convertFile.name.replace(/\.pdf$/i,'.docx'));
+    showStatus(statusConvert,'✅ Chuyển đổi thành công! File Word (.docx) đã được tải xuống.','success');
+  }catch(err){
+    showStatus(statusConvert,'❌ Có lỗi xảy ra: '+err.message,'error'); console.error(err);
+  }finally{ convertBtn.disabled=false;}
+}
+convertBtn.addEventListener('click', convertPDFtoWord);
+
+/* ---------- MERGE PPTX (CẢI TIẾN) ---------- */
+const uploadAreaPptx = document.getElementById('uploadAreaPptx');
+const fileInputPptx = document.getElementById('fileInputPptx');
+const fileListPptx = document.getElementById('fileListPptx');
+const mergePptxBtn = document.getElementById('mergePptxBtn');
+const statusPptx = document.getElementById('statusPptx');
+let pptxFiles = [];
+
+uploadAreaPptx.addEventListener('click', ()=>fileInputPptx.click());
+uploadAreaPptx.addEventListener('dragover', e=>{e.preventDefault();uploadAreaPptx.classList.add('dragover')});
+uploadAreaPptx.addEventListener('dragleave', ()=>uploadAreaPptx.classList.remove('dragover'));
+uploadAreaPptx.addEventListener('drop', e=>{e.preventDefault();uploadAreaPptx.classList.remove('dragover'); addPptxFiles(Array.from(e.dataTransfer.files).filter(f=>f.name.endsWith('.pptx')));});
+fileInputPptx.addEventListener('change', e=>addPptxFiles(Array.from(e.target.files)));
+
+function addPptxFiles(newFiles){ pptxFiles = pptxFiles.concat(newFiles); updatePptxFileList(); updatePptxButton(); }
+function updatePptxFileList(){ fileListPptx.innerHTML=''; pptxFiles.forEach((f,i)=>{ const el=document.createElement('div'); el.className='file-item'; el.innerHTML=`<span>${i+1}. ${escapeHtml(f.name)}</span><div><button class="remove-btn" onclick="removePptxFile(${i})">Xóa</button></div>`; fileListPptx.appendChild(el); }); }
+function removePptxFile(i){ pptxFiles.splice(i,1); updatePptxFileList(); updatePptxButton(); }
+function updatePptxButton(){ mergePptxBtn.disabled = pptxFiles.length < 2; }
+
+/*
+  Hàm mergePowerPoints: cải tiến so với bản trước
+  - Sử dụng file đầu làm base để giữ slideMaster, layouts, theme...
+  - Thu thập slides từ tất cả file, copy media sang /ppt/media với tên đảm bảo không đè
+  - Cập nhật slide rels (chỉ đổi Target sang tên media mới khi copy)
+  - Thay thế toàn bộ slides trong base bằng allSlides mới, cập nhật presentation.xml & presentation.xml.rels & [Content_Types].xml
+*/
+async function mergePowerPoints(files){
+  showStatus(statusPptx,'Đang gộp các file PowerPoint...','processing');
+  mergePptxBtn.disabled=true;
+  try{
+    const JSZipLib = window.JSZip;
+    // load base (file 0) vào mergedZip
+    const baseArrayBuffer = await files[0].arrayBuffer();
+    const mergedZip = await JSZipLib.loadAsync(baseArrayBuffer);
+
+    // collect slides from all files (including base)
+    const allSlides = []; // each: {xml, rels}
+    const mediaMap = {}; // tracks existing media names in mergedZip to avoid collisions
+
+    // helper: normalize slide file sort
+    const slideFilesFromZip = (zip) => Object.keys(zip.files).filter(n=>/^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a,b)=> {
+      const na = parseInt(a.match(/slide(\d+)\.xml$/)[1],10);
+      const nb = parseInt(b.match(/slide(\d+)\.xml$/)[1],10);
+      return na-nb;
+    });
+
+    // init mediaMap with existing mergedZip media files
+    Object.keys(mergedZip.files).forEach(name=>{
+      if(name.startsWith('ppt/media/')) mediaMap[name.replace('ppt/media/','')] = true;
+    });
+
+    function ensureUniqueMediaName(baseName){
+      let name = baseName;
+      if(!mediaMap[name]) { mediaMap[name]=true; return name; }
+      // nếu trùng, thêm số
+      const extIndex = baseName.lastIndexOf('.');
+      const basename = extIndex>=0 ? baseName.slice(0,extIndex) : baseName;
+      const ext = extIndex>=0 ? baseName.slice(extIndex) : '';
+      let k=1;
+      while(mediaMap[`${basename}_${k}${ext}`]) k++;
+      const newName = `${basename}_${k}${ext}`;
+      mediaMap[newName]=true;
+      return newName;
+    }
+
+    // copy slides & related media from each file
+    for(let fi=0; fi<files.length; fi++){
+      const file = files[fi];
+      const zip = await JSZipLib.loadAsync(await file.arrayBuffer());
+
+      const slideNames = slideFilesFromZip(zip);
+      for(const slidePath of slideNames){
+        const slideXml = await zip.file(slidePath).async('string');
+        // rels path for that slide (may or may not exist)
+        const relPath = slidePath.replace('ppt/slides/','ppt/slides/_rels/').replace('.xml','.xml.rels');
+        let relXml = zip.file(relPath) ? await zip.file(relPath).async('string') : null;
+
+        // nếu có rels, tìm các Target và copy files (như ../media/image1.png, ../embeddings/oleObject1.bin, ../charts/chart1.xml, ../slideLayouts/..., ../notesSlides/...)
+        if(relXml){
+          // target regex
+          const targets = [];
+          const re = /Target="([^"]+)"/g;
+          let m;
+          while((m=re.exec(relXml)) !== null){
+            targets.push(m[1]);
+          }
+          // xử lý targets
+          for(const target of targets){
+            // many targets in rels are relative like "../media/image1.png" or "../charts/chart1.xml"
+            // normalize to path inside zip: remove leading ../ and prefix with ppt/
+            let norm = target;
+            if(norm.startsWith('../')) norm = norm.replace(/^\.\.\//,''); // e.g. media/image1.png or charts/chart1.xml or slideLayouts/...
+            // sometimes targets might already be 'media/image1.png' or 'embeddings/..'
+            // build zip path
+            const zipPath = 'ppt/' + norm;
+            const fileEntry = zip.file(zipPath);
+            if(fileEntry){
+              // if media -> copy to ppt/media with unique name and update relXml target accordingly
+              if(zipPath.startsWith('ppt/media/')){
+                const origName = zipPath.replace('ppt/media/','');
+                const newName = ensureUniqueMediaName(origName);
+                // read as Uint8Array (binary)
+                const content = await fileEntry.async('uint8array');
+                // write to mergedZip if not exists
+                if(!mergedZip.file(`ppt/media/${newName}`)){
+                  mergedZip.file(`ppt/media/${newName}`, content);
+                }
+                // replace Target in relXml to "../media/newName"
+                const oldTargetEsc = target.replace(/([.*+?^=!:${}()|\[\]\/\\])/g,'\\$1'); // escape for regex
+                relXml = relXml.replace(new RegExp(`Target="${oldTargetEsc}"`,'g'), `Target="../media/${newName}"`);
+              } else {
+                // not media (chart, embeddings, slideLayout...). Copy if not exists.
+                // We will attempt to copy the file into the same relative path in mergedZip (ppt/...)
+                const destPath = zipPath; // keep same
+                if(!mergedZip.file(destPath)){
+                  try{
+                    const isText = typeof await fileEntry.async === 'function';
+                    // try binary read
+                    const content = await fileEntry.async('uint8array');
+                    mergedZip.file(destPath, content);
+                  }catch(e){
+                    // fallback to string
+                    const content = await fileEntry.async('string');
+                    mergedZip.file(destPath, content);
+                  }
+                }
+                // keep relXml Target as-is (../something) - it will point correctly relative to ppt/slides/_rels
+              }
+            } else {
+              // Nếu file không tồn tại trong zip nguồn, bỏ qua (một số rels là external)
+              console.warn('Không tìm thấy mục được tham chiếu trong file nguồn:', zipPath);
+            }
+          } // end for targets
+        } // end if relXml
+
+        allSlides.push({ xml: slideXml, rels: relXml });
+      } // end for slides
+    } // end for files
+
+    // Xóa tất cả slide hiện có trong mergedZip (ppt/slides/slide*.xml và _rels)
+    Object.keys(mergedZip.files).forEach(name=>{
+      if(/^ppt\/slides\/slide\d+\.xml$/.test(name) || /^ppt\/slides\/_rels\/slide\d+\.xml\.rels$/.test(name)){
+        mergedZip.remove(name);
+      }
+    });
+
+    // Thêm lại tất cả slides mới với tên slide1..slideN
+    for(let i=0;i<allSlides.length;i++){
+      const num = i+1;
+      mergedZip.file(`ppt/slides/slide${num}.xml`, allSlides[i].xml);
+      if(allSlides[i].rels){
+        // ensure slides/_rels folder exists by just adding file
+        mergedZip.file(`ppt/slides/_rels/slide${num}.xml.rels`, allSlides[i].rels);
+      }
+    }
+
+    // Cập nhật presentation.xml: thay sldIdLst
+    let presentationXml = mergedZip.file('ppt/presentation.xml') ? await mergedZip.file('ppt/presentation.xml').async('string') : null;
+    if(!presentationXml){
+      // nếu không có, tạo 1 presentation cơ bản
+      presentationXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+ xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+ xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:sldMasterIdLst/>
+  <p:sldIdLst/>
+  <p:sldSz cx="12192000" cy="6858000" type="screen4x3"/>
+</p:presentation>`;
+    }
+
+    // tìm presentation rels hiện có (để giữ các rel khác như slideMaster, theme...)
+    const presRelsPath = 'ppt/_rels/presentation.xml.rels';
+    let presRelsXml = mergedZip.file(presRelsPath) ? await mergedZip.file(presRelsPath).async('string') : null;
+
+    // Lấy các Relationship không phải slide (giữ lại)
+    let preservedRels = '';
+    let maxExistingRId = 1; // we'll search numbers in existing rel ids to avoid collide
+    if(presRelsXml){
+      const relMatches = presRelsXml.match(/<Relationship[\s\S]*?\/>/g) || [];
+      for(const r of relMatches){
+        const typeMatch = r.match(/Type="([^"]+)"/);
+        const idMatch = r.match(/Id="rId(\d+)"/);
+        const type = typeMatch ? typeMatch[1] : '';
+        const idNum = idMatch ? parseInt(idMatch[1],10) : 0;
+        if(idNum && idNum>maxExistingRId) maxExistingRId = idNum;
+        // nếu không phải slide relationship -> preserve
+        if(!/\/relationships\/slide/.test(type)){
+          preservedRels += r + "\n";
+        }
+      }
+    }
+
+    // xây dựng sldIdLst và new slide rels
+    let sldIdLst = '<p:sldIdLst>\n';
+    let newSlideRels = '';
+    // start new rId index after maxExistingRId
+    let nextRId = maxExistingRId + 1;
+
+    // choose slide id base (unique large numbers)
+    const slideIdBase = 256; // safe base; can set higher if needed
+    for(let i=0;i<allSlides.length;i++){
+      const slideNum = i+1;
+      const slideId = slideIdBase + slideNum;
+      const rId = nextRId + i;
+      sldIdLst += `<p:sldId id="${slideId}" r:id="rId${rId}"/>\n`;
+      newSlideRels += `<Relationship Id="rId${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide${slideNum}.xml"/>\n`;
+    }
+    sldIdLst += '</p:sldIdLst>';
+
+    // thay sldIdLst trong presentationXml (nếu có phần đó)
+    if(/<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/m.test(presentationXml)){
+      presentationXml = presentationXml.replace(/<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/, sldIdLst);
+    } else {
+      // insert trước p:sldSz
+      presentationXml = presentationXml.replace(/<p:sldSz[\s\S]*?\/>/, sldIdLst + '\n' + presentationXml.match(/<p:sldSz[\s\S]*?\/>/)[0]);
+    }
+    mergedZip.file('ppt/presentation.xml', presentationXml);
+
+    // tạo lại presentation.xml.rels với preservedRels + newSlideRels
+    const newPresRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${preservedRels}
+${newSlideRels}
+</Relationships>`;
+    mergedZip.file(presRelsPath, newPresRels);
+
+    // cập nhật [Content_Types].xml: thêm override cho slides nếu chưa có
+    const contentTypesPath = '[Content_Types].xml';
+    let contentTypesXml = mergedZip.file(contentTypesPath) ? await mergedZip.file(contentTypesPath).async('string') : null;
+    if(!contentTypesXml){
+      contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+</Types>`;
+    }
+    // add overrides for slides
+    for(let i=0;i<allSlides.length;i++){
+      const slideNum = i+1;
+      const overrideTag = `<Override PartName="/ppt/slides/slide${slideNum}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`;
+      if(contentTypesXml.indexOf(overrideTag) === -1){
+        // insert before closing </Types>
+        contentTypesXml = contentTypesXml.replace('</Types>', `  ${overrideTag}\n</Types>`);
+      }
+    }
+    mergedZip.file(contentTypesPath, contentTypesXml);
+
+    // export
+    const mergedBlob = await mergedZip.generateAsync({type:'blob',compression:'DEFLATE'});
+    downloadBlob(mergedBlob, 'merged_presentation.pptx');
+    showStatus(statusPptx, `✅ Đã gộp ${allSlides.length} slides thành công! File đã được tải xuống.`, 'success');
+  }catch(err){
+    showStatus(statusPptx, '❌ Có lỗi xảy ra khi gộp PPTX: ' + (err.message || err),'error');
+    console.error('merge PPTX error',err);
+  }finally{
+    mergePptxBtn.disabled=false;
+  }
+}
+
+mergePptxBtn.addEventListener('click', async ()=>{
+  if(pptxFiles.length < 2){
+    alert('Vui lòng chọn ít nhất 2 file .pptx');
+    return;
+  }
+  await mergePowerPoints(pptxFiles);
+});
+
+/* ---------- Utilities ---------- */
+function showStatus(element, message, type){
+  element.textContent = message;
+  element.className = 'status ' + (type||'');
+  if(type==='success'){
+    setTimeout(()=>{ element.textContent=''; element.className=''; },5000);
+  }
+}
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+function escapeHtml(str){
+  return (str+'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[m]);
+}
+</script>
+</body>
+</html>

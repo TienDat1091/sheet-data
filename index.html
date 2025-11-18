@@ -19,11 +19,13 @@
     </div>
 
     <div class="controls">
-      <button class="btn" onclick="window.location.href='data-log.html'">Xem dữ liệu</button>
+      <button class="btn todolist" onclick="window.open('todolist/index.html', '_blank')">Todo List </button>
+      <button class="btn" onclick="window.open('data-log.html', '_blank')">Check Logs</button>
       <button class="btn success" id="exportExcelBtn">Xuất Excel</button>
       <button class="btn danger" id="exportPptBtn">Xuất PowerPoint</button>
-      <button class="btn" id="refreshDbBtn">Làm mới DB</button>
-      <button class="btn" onclick="window.location.href='index2.html'">Back</button>
+      <button class="btn pdfm" onclick="window.open('pdfmerge/index.html', '_blank')">PDF Merge (Beta)</button>
+      <button class="btn ref" id="refreshDbBtn">Làm mới DB</button>
+      <button class="btn ai" onclick="window.open('chatbot/index.html', '_blank')">Chatbot AI</button>
     </div>
   </div>
 
@@ -49,7 +51,9 @@
                 <option value="RATESET">RATESET</option>
                 <option value="IOTYPE">IOTYPE</option>
                 <option value="WKTYPE">WKTYPE</option>
+                <option value="WET">WET</option>
                 <option value="ISSUE">ISSUE</option>
+                <option value="ISSUE">COLLECT DATA</option>
                 <option value="OTHER">OTHER.....</option>
             </select>
       <input type="text" id="emailTitle" placeholder="Tiêu đề mail" />
