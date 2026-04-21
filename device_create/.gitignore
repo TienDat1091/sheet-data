@@ -1,0 +1,14 @@
+node_modules/
+.env
+uploads/
+temp_task_utils/
+excel_viewer/
+~$*
+.gemini/
+.agent/
+brain/
+
+# Keep the knowledge bases
+!ROUTE_ALL.xls
+!VNFB.xls
+!Ho tro tao all - Copy - Copy.xlsx

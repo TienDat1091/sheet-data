@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Viewer Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="../../script_report/theme.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>Excel<span>Viewer</span></h2>
+            </div>
+
+            <div class="sidebar-section">
+                <!-- Data Files -->
+                <div class="section-title">Files</div>
+                <div class="actions-row">
+                    <label for="fileInput" class="upload-btn">
+                        + Upload
+                    </label>
+                    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" hidden>
+                </div>
+                <!-- Default File Entry -->
+                <div class="files-list" id="filesList">
+                    <div class="file-item active" data-filename="">
+                        <span class="file-name">Default File</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+                <div class="section-title">Sheets</div>
+                <div class="sheets-list" id="sheetList">
+                    <div class="loading">Loading sheets...</div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="content">
+            <header>
+                <h1 id="currentSheetName">Select a Sheet</h1>
+                <div class="actions">
+                    <div
+                        style="display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 6px; border: 1px solid #334155;">
+                        <span style="font-size: 0.8rem; color: #94a3b8;">DB:</span>
+                        <select id="dbTypeSelect"
+                            style="background: transparent; color: white; border: none; font-size: 0.8rem; outline: none; cursor: pointer;">
+                            <option value="VNKR" style="background: #1e293b;">VNKRDB0</option>
+                            <option value="VNFB" style="background: #1e293b;">VNFBDB0</option>
+                        </select>
+                    </div>
+                    <div
+                        style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 6px 12px; border-radius: 6px; border: 1px solid #334155;">
+                        <span style="font-size: 0.8rem; color: #94a3b8;">Mode:</span>
+                        <label
+                            style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 0.8rem;">
+                            <input type="radio" name="sqlMode" value="normal" style="cursor: pointer;">
+                            Normal
+                        </label>
+                        <label
+                            style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 0.8rem;">
+                            <input type="radio" name="sqlMode" value="repair" checked style="cursor: pointer;">
+                            Repair
+                        </label>
+                    </div>
+                    <div
+                        style="display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.2); padding: 6px 12px; border-radius: 6px; border: 1px solid #334155;">
+                        <span style="font-size: 0.8rem; color: #94a3b8;">Prefix:</span>
+                        <input type="text" id="stepPrefixInput" placeholder="MHBI" maxlength="4"
+                            style="background: rgba(0,0,0,0.3); color: white; border: 1px solid #475569; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; width: 50px; text-transform: uppercase; outline: none;">
+                    </div>
+                    <button class="btn btn-primary" id="genSqlBtn"
+                        style="background: #8b5cf6; border-color: #7c3aed;">Generate SQL</button>
+                    <button class="btn btn-primary" id="compareBtn"
+                        style="background: #f59e0b; border-color: #d97706;">📊 Compare Files</button>
+                    <button class="btn btn-success" id="saveBtn" style="display:none;">Save Change</button>
+                    <button class="btn" id="downloadBtn" style="background: #0ea5e9; color: white;">Download
+                        File</button>
+                    <button class="btn" id="refreshBtn">Refresh</button>
+                </div>
+                <div id="saveStatus" style="font-size: 0.8rem; color: #10b981; margin-top: 5px; height: 20px;"></div>
+            </header>
+
+            <div class="info-banner" id="infoBanner">
+                Please select a sheet from the sidebar to view data.
+            </div>
+
+            <div class="table-container fade-in" id="tableContainer" style="display: none;">
+                <table id="dataTable">
+                    <thead id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+
+            <!-- SQL Output Modal -->
+            <div id="sqlModal" class="loading-overlay"
+                style="display: none; align-items: flex-start; padding-top: 50px;">
+                <div
+                    style="background: #1e293b; padding: 20px; border-radius: 8px; width: 80%; max-width: 800px; border: 1px solid #334155; display: flex; flex-direction: column; gap: 10px; max-height: 80vh;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0;">Generated SQL</h3>
+                        <button id="closeSqlBtn" class="btn" style="padding: 4px 8px;">&times;</button>
+                    </div>
+                    <textarea id="sqlOutput"
+                        style="width: 100%; height: 300px; background: rgba(0,0,0,0.3); color: #a5f3fc; border: 1px solid #334155; padding: 10px; font-family: monospace;"
+                        readonly></textarea>
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button id="copySqlBtn" class="btn btn-primary">Copy to Clipboard</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compare Files Modal -->
+            <div id="compareModal" class="loading-overlay"
+                style="display: none; align-items: flex-start; padding-top: 30px;">
+                <div
+                    style="background: #1e293b; padding: 20px; border-radius: 8px; width: 90%; max-width: 1000px; border: 1px solid #334155; display: flex; flex-direction: column; gap: 15px; max-height: 85vh; overflow-y: auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0;">📊 So Sánh File Excel</h3>
+                        <button id="closeCompareBtn" class="btn" style="padding: 4px 8px;">&times;</button>
+                    </div>
+
+                    <!-- File Selection -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 6px; border: 1px solid #475569;">
+                            <h4 style="margin: 0 0 10px 0; color: #10b981;">File 1 (Mong đợi)</h4>
+                            <label style="display:block; margin-bottom:8px; font-size:0.85rem; color:#94a3b8;">
+                                Upload hoặc chọn từ danh sách:
+                            </label>
+                            <input type="file" id="compareFileInput1" accept=".xlsx,.xls,.csv"
+                                style="width:100%; margin-bottom:8px; font-size:0.8rem; color:#f1f5f9;"
+                                onchange="handleCompareFileUpload(event, 1)">
+                            <select id="compareFile1" class="btn compare-select"
+                                style="width: 100%; margin-bottom: 10px; background: rgba(0,0,0,0.4); color: #f1f5f9; font-weight: 500;">
+                                <option value="">-- Chọn File đã upload --</option>
+                            </select>
+                            <select id="compareSheet1" class="btn compare-select"
+                                style="width: 100%; background: rgba(0,0,0,0.4); color: #f1f5f9; font-weight: 500;">
+                                <option value="">-- Chọn Sheet 1 --</option>
+                            </select>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 6px; border: 1px solid #475569;">
+                            <h4 style="margin: 0 0 10px 0; color: #f59e0b;">File 2 (Thực tế)</h4>
+                            <label style="display:block; margin-bottom:8px; font-size:0.85rem; color:#94a3b8;">
+                                Upload hoặc chọn từ danh sách:
+                            </label>
+                            <input type="file" id="compareFileInput2" accept=".xlsx,.xls,.csv"
+                                style="width:100%; margin-bottom:8px; font-size:0.8rem; color:#f1f5f9;"
+                                onchange="handleCompareFileUpload(event, 2)">
+                            <select id="compareFile2" class="btn compare-select"
+                                style="width: 100%; margin-bottom: 10px; background: rgba(0,0,0,0.4); color: #f1f5f9; font-weight: 500;">
+                                <option value="">-- Chọn File đã upload --</option>
+                            </select>
+                            <select id="compareSheet2" class="btn compare-select"
+                                style="width: 100%; background: rgba(0,0,0,0.4); color: #f1f5f9; font-weight: 500;">
+                                <option value="">-- Chọn Sheet 2 --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button id="runCompareBtn" class="btn btn-primary"
+                        style="background: #f59e0b; border-color: #d97706;">
+                        So Sánh
+                    </button>
+
+                    <!-- Results Area -->
+                    <div id="compareResults" style="display: none;">
+                        <div id="compareSummary"
+                            style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                        </div>
+                        <div id="compareDetails" style="max-height: 400px; overflow-y: auto;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- AI Panel Removed -->
+
+            <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                <div class="spinner"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
