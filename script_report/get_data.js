@@ -119,9 +119,8 @@ function renderNotes(notesToShow, totalItems, totalPages) {
 
       const actionsDiv = document.createElement('div'); actionsDiv.className='note-actions';
       const btnEdit = document.createElement('button'); btnEdit.className='btn'; btnEdit.textContent='Cập nhật'; btnEdit.onclick = ()=> openEditModalById(note.id);
-      const btnDup = document.createElement('button'); btnDup.className='btn secondary'; btnDup.textContent='Nhân bản'; btnDup.onclick = ()=> duplicateNote(note.id);
       const btnDelete = document.createElement('button'); btnDelete.className='btn danger'; btnDelete.textContent='Xóa'; btnDelete.onclick = ()=> deleteNote(note.id);
-      actionsDiv.appendChild(btnEdit); actionsDiv.appendChild(btnDup); actionsDiv.appendChild(btnDelete);
+      actionsDiv.appendChild(btnEdit); actionsDiv.appendChild(btnDelete);
       body.appendChild(actionsDiv);
 
       div.appendChild(cbWrap); div.appendChild(meta); div.appendChild(body);

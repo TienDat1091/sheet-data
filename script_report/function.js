@@ -161,6 +161,14 @@ function addNote() {
   const tx = db.transaction('notes','readwrite');
   tx.objectStore('notes').add({ title, reason, emailTitle, content, timestamp, images });
   tx.oncomplete = () => {
+    // ---- Lưu Log vào Notepad Cục Bộ (Không kèm ảnh) ----
+    try {
+      const logStr = `\r\n[${new Date(timestamp).toLocaleString('vi-VN')}]\r\nTiêu đề: ${title}\r\nNguyên nhân: ${reason}\r\nTiêu đề email: ${emailTitle}\r\nNội dung: ${content}\r\n-----------------------------------------\r\n`;
+      const existingLog = localStorage.getItem('notepad_log') || '=== LỊCH SỬ GHI CHÚ NOTE REPORT ===\r\n';
+      localStorage.setItem('notepad_log', existingLog + logStr);
+    } catch(err) { console.error("Không thể ghi log:", err); }
+    // ----------------------------------------------------
+
     resetForm();
     currentPage = 1;
     displayNotes();
@@ -263,7 +271,28 @@ if (confirmResetBtn) confirmResetBtn.addEventListener('click', ()=> {
   tx.oncomplete = ()=> {
     const m = document.getElementById('confirmResetModal');
     if (m) { m.style.display = 'none'; m.setAttribute('aria-hidden','true'); }
-    currentPage = 1; selectedNotes.clear(); displayNotes(); updateNotesStats(); showNotification('Đã xóa toàn bộ dữ liệu');
+    currentPage = 1; selectedNotes.clear(); displayNotes(); updateNotesStats(); 
+    localStorage.removeItem('notepad_log'); // Xoá luôn cả file log nếu xoá toàn bộ dữ liệu
+    showNotification('Đã xóa toàn bộ dữ liệu');
   };
   tx.onerror = e => { console.error(e); showNotification('Lỗi khi xóa dữ liệu', true); };
 });
+
+/* ----------------- Notepad Log Download ----------------- */
+const downloadLogBtn = document.getElementById('downloadLogBtn');
+if (downloadLogBtn) {
+  downloadLogBtn.addEventListener('click', () => {
+    const logData = localStorage.getItem('notepad_log');
+    if (!logData) return showNotification('Chưa có dữ liệu log nào!', true);
+    const blob = new Blob([logData], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.download = `Notepad_Log_${dateStr}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+}
