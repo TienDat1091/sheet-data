@@ -4,16 +4,17 @@
 
 (function () {
     // ── API Config ───────────────────────────────────────────
-    const API_KEY = "AIzaSyAyWgw3DRqqFqHJhqBF7h501EIblmyhBdk";
-    const DEFAULT_MODEL_NAME = "gemini-3-flash-preview";
-    const ALLOWED_MODEL_NAMES = new Set([DEFAULT_MODEL_NAME]);
+    // Using local backend API for security (API key is server-side only)
+    const DEFAULT_MODEL_NAME = "gemini-1.5-flash";
+    const ALLOWED_MODEL_NAMES = new Set([DEFAULT_MODEL_NAME, "gemini-1.5-pro"]);
     let currentModelName = localStorage.getItem("gemini_model") || DEFAULT_MODEL_NAME;
     if (!ALLOWED_MODEL_NAMES.has(currentModelName)) {
         currentModelName = DEFAULT_MODEL_NAME;
         localStorage.setItem("gemini_model", currentModelName);
     }
     function getApiUrl() {
-        return `https://generativelanguage.googleapis.com/v1beta/models/${currentModelName}:generateContent?key=${API_KEY}`;
+        // Use local backend proxy instead of direct Google API call
+        return `/api/chat`;
     }
     const SYSTEM_PROMPT = `Bạn là Trợ lý phân tích dữ liệu chuyên nghiệp thuộc hệ thống NOTE REPORT. 
 Nhiệm vụ của bạn là:
@@ -534,10 +535,17 @@ Bạn có thể tạo nhiều file trong một tin nhắn nếu cần. Điều n
         if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
         for (let attempt = 0; attempt <= GEMINI_MAX_RETRIES; attempt++) {
             geminiLastRequestAt = Date.now();
+            
+            // Add model name to payload when sending to backend
+            const payloadWithModel = {
+                ...payload,
+                model: currentModelName
+            };
+            
             const res = await fetch(getApiUrl(), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                body: JSON.stringify(payloadWithModel),
                 signal
             });
             const data = await res.json().catch(() => ({}));

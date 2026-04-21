@@ -12,3 +12,5 @@ build/
 *~
 .credentials.json
 credentials.json
+.env.development
+.env.production
