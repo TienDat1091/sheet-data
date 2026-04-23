@@ -75,8 +75,11 @@ h1{text-align:center;color:#667eea;margin-bottom:18px}
   <div id="pptx-tab" class="tab-content">
     <div class="upload-area" id="uploadAreaPptx">
       <div style="font-size:36px">📊</div>
-      <p style="color:#666">Kéo thả file PowerPoint (.pptx) vào đây hoặc click để chọn</p>
-      <input type="file" id="fileInputPptx" accept=".pptx" multiple style="display:none">
+      <p style="color:#666">Kéo thả file .pptx, .zip, .rar, .7z hoặc thư mục vào đây (sẽ tự động tìm .pptx)</p>
+      <input type="file" id="fileInputPptx" multiple style="display:none">
+    </div>
+    <div style="margin-bottom:12px; padding:10px; background:#f0f7ff; border-left:4px solid #667eea; border-radius:4px; font-size:14px; color:#333;">
+      💡 <strong>Cách sử dụng:</strong> Chọn file .pptx trực tiếp hoặc file nén (.zip) chứa .pptx để tự động trích xuất
     </div>
     <div class="file-list" id="fileListPptx"></div>
     <button class="action-btn" id="mergePptxBtn" disabled>Gộp tất cả PowerPoint</button>
@@ -232,8 +235,77 @@ let pptxFiles = [];
 uploadAreaPptx.addEventListener('click', ()=>fileInputPptx.click());
 uploadAreaPptx.addEventListener('dragover', e=>{e.preventDefault();uploadAreaPptx.classList.add('dragover')});
 uploadAreaPptx.addEventListener('dragleave', ()=>uploadAreaPptx.classList.remove('dragover'));
-uploadAreaPptx.addEventListener('drop', e=>{e.preventDefault();uploadAreaPptx.classList.remove('dragover'); addPptxFiles(Array.from(e.dataTransfer.files).filter(f=>f.name.endsWith('.pptx')));});
-fileInputPptx.addEventListener('change', e=>addPptxFiles(Array.from(e.target.files)));
+uploadAreaPptx.addEventListener('drop', e=>{e.preventDefault();uploadAreaPptx.classList.remove('dragover'); processPptxSelection(Array.from(e.dataTransfer.files));});
+fileInputPptx.addEventListener('change', e=>processPptxSelection(Array.from(e.target.files)));
+
+async function processPptxSelection(selectedFiles){
+  showStatus(statusPptx, 'Đang xử lý file...', 'processing');
+  try{
+    const JSZipLib = window.JSZip;
+    const foundPptxFiles = [];
+    
+    for(const file of selectedFiles){
+      // nếu là zip file, trích xuất và tìm .pptx
+      if(file.type === 'application/zip' || file.name.toLowerCase().endsWith('.zip')){
+        try{
+          const zip = await JSZipLib.loadAsync(await file.arrayBuffer());
+          const pptxPaths = Object.keys(zip.files).filter(n => 
+            n.toLowerCase().endsWith('.pptx') && !zip.files[n].dir
+          );
+          
+          for(const pptxPath of pptxPaths){
+            const pptxData = await zip.file(pptxPath).async('blob');
+            const pptxFile = new File([pptxData], pptxPath.split('/').pop(), {type:'application/vnd.openxmlformats-officedocument.presentationml.presentation'});
+            foundPptxFiles.push(pptxFile);
+          }
+          if(pptxPaths.length > 0){
+            showStatus(statusPptx, `✅ Tìm thấy ${pptxPaths.length} file PPTX trong ${file.name}`, 'success');
+          }
+        }catch(err){
+          console.error('Lỗi trích xuất ZIP:', err);
+          showStatus(statusPptx, `⚠️ Không thể trích xuất ${file.name}`, 'error');
+        }
+      } 
+      // nếu là file .pptx trực tiếp
+      else if(file.type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' || file.name.toLowerCase().endsWith('.pptx')){
+        foundPptxFiles.push(file);
+      }
+      // các file khác (có thể là archive khác) thử xem có phải zip không
+      else {
+        try{
+          const JSZipLib = window.JSZip;
+          const zip = await JSZipLib.loadAsync(await file.arrayBuffer());
+          const pptxPaths = Object.keys(zip.files).filter(n => 
+            n.toLowerCase().endsWith('.pptx') && !zip.files[n].dir
+          );
+          
+          if(pptxPaths.length > 0){
+            for(const pptxPath of pptxPaths){
+              const pptxData = await zip.file(pptxPath).async('blob');
+              const pptxFile = new File([pptxData], pptxPath.split('/').pop(), {type:'application/vnd.openxmlformats-officedocument.presentationml.presentation'});
+              foundPptxFiles.push(pptxFile);
+            }
+            showStatus(statusPptx, `✅ Tìm thấy ${pptxPaths.length} file PPTX trong ${file.name}`, 'success');
+          }
+        }catch(e){
+          // không phải zip, bỏ qua
+          console.warn('File không được hỗ trợ:', file.name);
+        }
+      }
+    }
+    
+    if(foundPptxFiles.length > 0){
+      addPptxFiles(foundPptxFiles);
+      showStatus(statusPptx, `✅ Tổng cộng ${pptxFiles.length} file PPTX sẵn sàng để gộp`, 'success');
+      setTimeout(()=>{ statusPptx.textContent=''; statusPptx.className=''; }, 3000);
+    } else {
+      showStatus(statusPptx, '❌ Không tìm thấy file PPTX nào', 'error');
+    }
+  }catch(err){
+    showStatus(statusPptx, '❌ Lỗi xử lý file: ' + err.message, 'error');
+    console.error('Lỗi:', err);
+  }
+}
 
 function addPptxFiles(newFiles){ pptxFiles = pptxFiles.concat(newFiles); updatePptxFileList(); updatePptxButton(); }
 function updatePptxFileList(){ fileListPptx.innerHTML=''; pptxFiles.forEach((f,i)=>{ const el=document.createElement('div'); el.className='file-item'; el.innerHTML=`<span>${i+1}. ${escapeHtml(f.name)}</span><div><button class="remove-btn" onclick="removePptxFile(${i})">Xóa</button></div>`; fileListPptx.appendChild(el); }); }
