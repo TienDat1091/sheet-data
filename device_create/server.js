@@ -252,7 +252,7 @@ app.post('/api/generate-sql', (req, res) => {
             return newPrefix + step.substring(4);
         };
 
-        // NORMAL MODE: Generate simple INSERT statements for regular stations (RIDX 1-999)
+        // NORMAL MODE: Generate INSERT statements for ALL stations in the sheet
         if (mode === 'normal') {
             const columns = `ROUTE,RIDX,STEP,STEPTIME,TIMESTEP,STEPSTAY,LOWSTEPTIME,LOWTIMESTEP,RTYPE1,RTYPE2,RTYPE3,MSTEP,OSTEP,SECTION,GRP,STEPFLAG,STEPFLAG1,STEPFLAG2,STEPFLAG3,KP1,KP2,KP3,TOKP,CHKKP1,CHKKP2,KPMODE,STEPNM`;
 
@@ -260,8 +260,8 @@ app.post('/api/generate-sql', (req, res) => {
                 const stepValue = row.STEP || row.STEPNM || '';
                 const ridx = parseInt(row.RIDX);
 
-                // Filter: RIDX 1-999 (exclude RIDX with 4+ trailing zeros like 80001, 100001)
-                if (!row.RIDX || !row.ROUTE || isNaN(ridx) || ridx >= 10000) return;
+                // Filter: skip rows without valid RIDX or ROUTE
+                if (!row.RIDX || !row.ROUTE || isNaN(ridx)) return;
 
                 sqlEntryCount++;
                 sqlOutput += `-- No: ${sqlEntryCount}\n`;

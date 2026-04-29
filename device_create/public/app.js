@@ -297,7 +297,7 @@ function generateSQL() {
         rawData.forEach(row => {
             const stepValue = row.STEP || row.STEPNM || '';
             const ridx = parseInt(row.RIDX);
-            if (!row.RIDX || !row.ROUTE || isNaN(ridx) || ridx >= 10000) return;
+            if (!row.RIDX || !row.ROUTE || isNaN(ridx)) return;
 
             sqlEntryCount++;
             sqlOutput += `-- No: ${sqlEntryCount}\n`;
@@ -316,10 +316,19 @@ function generateSQL() {
             const section = (row.SECTION || '').toString();
             const grp = (row.GRP || '').toString();
             const stepflag = (row.STEPFLAG || '').toString();
+            const stepflag1 = (row.STEPFLAG1 || '').toString();
+            const stepflag2 = (row.STEPFLAG2 || '').toString();
+            const stepflag3 = (row.STEPFLAG3 || '').toString();
             const kp1 = (row.KP1 || '').toString();
+            const kp2 = (row.KP2 || '').toString();
+            const kp3 = (row.KP3 || '').toString();
+            const tokp = (row.TOKP || '').toString();
+            const chkkp1 = (row.CHKKP1 || '').toString();
+            const chkkp2 = (row.CHKKP2 || '').toString();
+            const kpmode = (row.KPMODE || '').toString();
             const stepnm = (row.STEPNM || '').toString();
 
-            sqlOutput += `INSERT INTO route_step (${columns}) values('${route}','${ridx}','${step}',${steptime},${timestep},${stepstay},${lowsteptime},${lowtimestep},'${rtype1}','${rtype2}','${rtype3}','${mstep}','${ostep}','${section}','${grp}','${stepflag}','','','','${kp1}','','','','','','','${stepnm}');\n\n`;
+            sqlOutput += `INSERT INTO route_step (${columns}) values('${route}','${ridx}','${step}',${steptime},${timestep},${stepstay},${lowsteptime},${lowtimestep},'${rtype1}','${rtype2}','${rtype3}','${mstep}','${ostep}','${section}','${grp}','${stepflag}','${stepflag1}','${stepflag2}','${stepflag3}','${kp1}','${kp2}','${kp3}','${tokp}','${chkkp1}','${chkkp2}','${kpmode}','${stepnm}');\n\n`;
         });
     } else {
         // REPAIR MODE
