@@ -6,7 +6,7 @@
     // ── API Config ───────────────────────────────────────────
     const API_KEY = "AIzaSyAyWgw3DRqqFqHJhqBF7h501EIblmyhBdk";
     const DEFAULT_MODEL_NAME = "gemini-3-flash-preview";
-    const ALLOWED_MODEL_NAMES = new Set([DEFAULT_MODEL_NAME]);
+    const ALLOWED_MODEL_NAMES = new Set([DEFAULT_MODEL_NAME, "local-search"]);
     let currentModelName = localStorage.getItem("gemini_model") || DEFAULT_MODEL_NAME;
     if (!ALLOWED_MODEL_NAMES.has(currentModelName)) {
         currentModelName = DEFAULT_MODEL_NAME;
@@ -457,6 +457,7 @@ Bạn có thể tạo nhiều file trong một tin nhắn nếu cần. Điều n
         const fileList = Array.from(files || []);
         if (fileList.length === 0) return;
         showTemporaryBotMessage(`Đang nạp ${fileList.length} tài liệu vào kho AI...`);
+        let successCount = 0;
         for (const file of fileList) {
             try {
                 const text = await extractKnowledgeText(file);
@@ -470,18 +471,93 @@ Bạn có thể tạo nhiều file trong một tin nhắn nếu cần. Điều n
                     createdAt: new Date().toISOString(),
                     text: normalizedText
                 });
+                successCount++;
             } catch (err) {
                 showTemporaryBotMessage(`Không nạp được "${file.name}": ${err.message}`);
             }
         }
         await renderKnowledgeList();
-        showTemporaryBotMessage("Đã nạp tài liệu. Từ giờ khi bạn hỏi lỗi liên quan, tôi sẽ tra kho tài liệu này trước khi trả lời.");
+        if (successCount > 0) {
+            showTemporaryBotMessage(`Đã nạp thành công ${successCount}/${fileList.length} tài liệu. Từ giờ khi bạn hỏi lỗi liên quan, tôi sẽ tra kho tài liệu này trước khi trả lời.`);
+        } else {
+            showTemporaryBotMessage(`Thất bại: Không có tài liệu nào được nạp vào kho lưu trữ do gặp lỗi.`);
+        }
+    }
+
+    function readExcelFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    let textResult = "";
+                    workbook.SheetNames.forEach(sheetName => {
+                        const sheet = workbook.Sheets[sheetName];
+                        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                        if (rows.length > 0) {
+                            textResult += `\n--- Sheet: ${sheetName} ---\n`;
+                            rows.forEach((row, i) => {
+                                textResult += `Dòng ${i + 1}: ${row.join(" | ")}\n`;
+                            });
+                        }
+                    });
+                    resolve(textResult);
+                } catch (err) {
+                    reject(new Error("Không thể đọc cấu trúc Excel cục bộ."));
+                }
+            };
+            reader.onerror = () => reject(new Error("Lỗi đọc file Excel."));
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    function readPdfFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const typedarray = new Uint8Array(e.target.result);
+                    if (typeof pdfjsLib === "undefined") {
+                        throw new Error("Thư viện pdf.js chưa được tải.");
+                    }
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+                    
+                    const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                    let textResult = "";
+                    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                        const page = await pdf.getPage(pageNum);
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items.map(item => item.str).join(" ");
+                        textResult += `\n--- Trang ${pageNum} ---\n${pageText}\n`;
+                    }
+                    resolve(textResult);
+                } catch (err) {
+                    reject(new Error("Không thể trích xuất văn bản từ PDF cục bộ: " + err.message));
+                }
+            };
+            reader.onerror = () => reject(new Error("Lỗi đọc file PDF."));
+            reader.readAsArrayBuffer(file);
+        });
     }
 
     async function extractKnowledgeText(file) {
         const mimeType = inferMimeType(file);
         const isText = isReadableTextFile(file, mimeType);
         if (isText) return await readFileAsText(file);
+
+        // Check if it is an excel file and XLSX library is loaded
+        const isExcel = mimeType.includes("sheet") || mimeType.includes("excel") || /\.(xlsx|xls)$/i.test(file.name);
+        if (isExcel && typeof XLSX !== "undefined") {
+            return await readExcelFileAsText(file);
+        }
+
+        // Check if it is a PDF file and pdfjsLib is loaded
+        const isPdf = mimeType === "application/pdf" || /\.(pdf)$/i.test(file.name);
+        if (isPdf && typeof pdfjsLib !== "undefined") {
+            return await readPdfFileAsText(file);
+        }
+
         if (file.size > MAX_INLINE_FILE_BYTES) {
             throw new Error(`file quá lớn (${formatFileSize(file.size)})`);
         }
@@ -629,9 +705,89 @@ Bạn có thể tạo nhiều file trong một tin nhắn nếu cần. Điều n
         return div;
     }
 
+    async function getLocalSearchResponse(query, errorMsg) {
+        let response = "";
+        if (errorMsg === "OFFLINE_MODE") {
+            response += `💡 *Chế độ **Tìm kiếm Cục bộ (Offline)** đang hoạt động (Không cần API Key).*\n\n`;
+        } else {
+            response += `⚠️ **Không thể kết nối đến AI (Gemini):** *${escapeHtml(errorMsg)}*\n\n`;
+            response += `💡 *Hệ thống tự động chuyển sang chế độ **Tìm kiếm Cục bộ (Offline)** để quét nội dung trong các tài liệu đã nạp.*\n\n`;
+        }
+        
+        // 1. Search Knowledge Docs
+        const docs = await getKnowledgeDocs();
+        const chunks = [];
+        docs.forEach(doc => {
+            splitIntoChunks(doc.text, 1200).forEach((chunk, index) => {
+                chunks.push({ doc, index, text: chunk, score: scoreChunk(query, chunk, doc.name) });
+            });
+        });
+        
+        // 2. Search Local Notes
+        const notesRaw = await fetchAllNotesContext();
+        if (notesRaw) {
+            const noteLines = notesRaw.split('\n').filter(l => l.startsWith('- '));
+            noteLines.forEach((line, index) => {
+                const score = scoreChunk(query, line, "Ghi chú lỗi");
+                if (score > 0) {
+                    chunks.push({
+                        doc: { name: "Cơ sở dữ liệu Báo cáo lỗi (Note Report)" },
+                        index,
+                        text: line,
+                        score
+                    });
+                }
+            });
+        }
+        
+        const top = chunks
+            .filter(item => item.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 5);
+            
+        if (top.length > 0) {
+            response += `### 🔍 Kết quả tìm kiếm cục bộ phù hợp nhất:\n\n`;
+            top.forEach((item, i) => {
+                response += `#### [${i + 1}] Nguồn: *${escapeHtml(item.doc.name)}*\n`;
+                if (item.doc.name.includes("Báo cáo lỗi")) {
+                    response += `${item.text}\n\n`;
+                } else {
+                    response += `> ${escapeHtml(item.text)}\n\n`;
+                }
+            });
+            response += `---\n*Bạn có thể xem đầy đủ nội dung hoặc nạp thêm tệp tin văn bản (.txt, .md, .csv) hoặc bảng tính (.xlsx, .xls) ở thanh bên trái.*`;
+        } else {
+            response += `### 🔍 Kết quả tìm kiếm cục bộ:\n\n`;
+            response += `❌ Không tìm thấy thông tin nào phù hợp với câu hỏi của bạn trong các tài liệu đã nạp.\n\n`;
+            response += `*Gợi ý:* Hãy thử nạp thêm các tài liệu hướng dẫn xử lý sự cố, tệp tin log lỗi dạng văn bản (.txt, .md, .csv) hoặc bảng tính (.xlsx, .xls) của bạn vào phần **Tài liệu AI** ở thanh bên trái để tra cứu.`;
+        }
+        return response;
+    }
+
     async function callGemini(thinkingDiv) {
         activeResponseController = new AbortController();
         setResponseRunning(true);
+
+        const currentModel = modelSelect ? modelSelect.value : "gemini-3-flash-preview";
+        if (currentModel === "local-search") {
+            try {
+                const lastUserText = chatHistory.filter(m => m.role === "user").slice(-1)[0]?.parts?.find(p => p.text)?.text || "";
+                const fallbackResponse = await getLocalSearchResponse(lastUserText, "OFFLINE_MODE");
+                thinkingDiv.classList.remove("thinking");
+                thinkingDiv.querySelector(".message-text").innerHTML = renderBotContent(fallbackResponse);
+                chatHistory.push({ role: "model", parts: [{ text: fallbackResponse }] });
+                saveMessage("bot", fallbackResponse);
+            } catch (err) {
+                thinkingDiv.classList.remove("thinking");
+                thinkingDiv.querySelector(".message-text").innerHTML = `<span style="color:#ef4444;">⚠️ Lỗi: ${escapeHtml(err.message)}</span>`;
+            } finally {
+                activeResponseController = null;
+                setResponseRunning(false);
+            }
+            chatBody.scrollTo({ behavior: "smooth", top: chatBody.scrollHeight });
+            return;
+        }
+
         try {
             const notesCtx = await fetchAllNotesContext();
             const lastUserText = chatHistory.filter(m => m.role === "user").slice(-1)[0]?.parts?.find(p => p.text)?.text || "";
@@ -659,8 +815,12 @@ Bạn có thể tạo nhiều file trong một tin nhắn nếu cần. Điều n
                 thinkingDiv.querySelector(".message-text").innerHTML =
                     `<span style="color:#f59e0b;">Đã hủy trả lời.</span>`;
             } else {
-                thinkingDiv.querySelector(".message-text").innerHTML =
-                    `<span style="color:#ef4444;">⚠️ Lỗi: ${escapeHtml(err.message)}</span>`;
+                // Auto Fallback to local offline search on error (e.g. Expired API Key)
+                const lastUserText = chatHistory.filter(m => m.role === "user").slice(-1)[0]?.parts?.find(p => p.text)?.text || "";
+                const fallbackResponse = await getLocalSearchResponse(lastUserText, err.message);
+                thinkingDiv.querySelector(".message-text").innerHTML = renderBotContent(fallbackResponse);
+                chatHistory.push({ role: "model", parts: [{ text: fallbackResponse }] });
+                saveMessage("bot", fallbackResponse);
             }
         } finally {
             activeResponseController = null;

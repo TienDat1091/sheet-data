@@ -279,7 +279,31 @@ function generateSQL() {
     const dbType = elements.dbTypeSelect ? elements.dbTypeSelect.value : 'VNKR';
 
     const sheet = currentWorkbook.Sheets[currentSheet];
-    const rawData = XLSX.utils.sheet_to_json(sheet); // Array of objects
+    const rawData = XLSX.utils.sheet_to_json(sheet).map(rawRow => {
+        const normalized = {};
+        for (const key in rawRow) {
+            if (rawRow.hasOwnProperty(key)) {
+                normalized[key.toString().trim().toUpperCase()] = rawRow[key];
+            }
+        }
+        return normalized;
+    });
+
+    // Build map of ROUTE + original RIDX -> corrected sequential RIDX
+    const correctedRidxMap = new Map();
+    const routeCounters = {};
+    rawData.forEach(row => {
+        if (!row.ROUTE) return;
+        const route = row.ROUTE.toString().trim();
+        const originalRidx = parseInt(row.RIDX);
+        if (isNaN(originalRidx)) return;
+        
+        if (!routeCounters[route]) {
+            routeCounters[route] = 0;
+        }
+        routeCounters[route]++;
+        correctedRidxMap.set(`${route}_${originalRidx}`, routeCounters[route]);
+    });
     
     let sqlOutput = "";
     let sqlEntryCount = 0;
@@ -292,17 +316,59 @@ function generateSQL() {
         return newPrefix + step.substring(4);
     };
 
+    const formatStepOrOstep = (val, newPrefix, dbType, fallbackSection, grpVal) => {
+        if (!val) {
+            const grp = grpVal ? grpVal.toString().trim() : '';
+            if (!grp) return '0';
+            const selectedDB = knowledgeBase[dbType] || knowledgeBase.VNKR;
+            const secName = selectedDB.grpToSectionMap.get(grp) || fallbackSection || '';
+            const secPrefix = secName ? secName.charAt(0).toUpperCase() : 'X';
+            return `${newPrefix}${secPrefix}${grp}`;
+        }
+        let str = val.toString().trim();
+        if (str === '0') return '0';
+        if (str.length === 8) {
+            return newPrefix + str.substring(4);
+        }
+        const grp = grpVal ? grpVal.toString().trim() : (str.length >= 3 ? str.slice(-3) : str);
+        const selectedDB = knowledgeBase[dbType] || knowledgeBase.VNKR;
+        const secName = selectedDB.grpToSectionMap.get(grp) || fallbackSection || '';
+        const secPrefix = secName ? secName.charAt(0).toUpperCase() : 'X';
+        return `${newPrefix}${secPrefix}${grp}`;
+    };
+
+    let prefixToUse = newPrefix;
+    const hasMissingStep = rawData.some(row => {
+        const val = row.STEP || row.STEPNM || '';
+        return !val || val.toString().trim().length !== 8;
+    });
+    if (hasMissingStep && (!prefixToUse || prefixToUse.length !== 4)) {
+        const userPrompt = prompt("Phát hiện dòng không có thông tin STEP chuẩn (8 ký tự). Vui lòng nhập 4 kí tự đầu tiên của STEP (ví dụ: MHBI):");
+        if (userPrompt) {
+            prefixToUse = userPrompt.trim().toUpperCase();
+            if (prefixInput) prefixInput.value = prefixToUse;
+        }
+    }
+    if (hasMissingStep && (!prefixToUse || prefixToUse.length !== 4)) {
+        alert("Không có thông tin STEP và bạn chưa nhập đúng 4 kí tự đầu! Không thể tạo SQL.");
+        showLoading(false);
+        return;
+    }
+
     if (mode === 'normal') {
         const columns = "ROUTE,RIDX,STEP,STEPTIME,TIMESTEP,STEPSTAY,LOWSTEPTIME,LOWTIMESTEP,RTYPE1,RTYPE2,RTYPE3,MSTEP,OSTEP,SECTION,GRP,STEPFLAG,STEPFLAG1,STEPFLAG2,STEPFLAG3,KP1,KP2,KP3,TOKP,CHKKP1,CHKKP2,KPMODE,STEPNM";
         rawData.forEach(row => {
-            const stepValue = row.STEP || row.STEPNM || '';
-            const ridx = parseInt(row.RIDX);
-            if (!row.RIDX || !row.ROUTE || isNaN(ridx)) return;
+            let stepValue = row.STEP || row.STEPNM || '';
+            const originalRidx = parseInt(row.RIDX);
+            if (!row.RIDX || !row.ROUTE || isNaN(originalRidx)) return;
 
             sqlEntryCount++;
             sqlOutput += `-- No: ${sqlEntryCount}\n`;
             const route = (row.ROUTE || '').toString();
-            const step = replacePrefix(stepValue.toString().trim(), newPrefix);
+            const ridx = correctedRidxMap.get(`${route}_${originalRidx}`) || originalRidx;
+            
+            const step = formatStepOrOstep(stepValue, prefixToUse, dbType, row.SECTION, row.GRP);
+
             const steptime = row.STEPTIME || 0;
             const timestep = row.TIMESTEP || 0;
             const stepstay = row.STEPSTAY || 0;
@@ -311,8 +377,41 @@ function generateSQL() {
             const rtype1 = (row.RTYPE1 || '').toString();
             const rtype2 = (row.RTYPE2 || 'N').toString();
             const rtype3 = (row.RTYPE3 || '').toString();
-            const mstep = replacePrefix((row.MSTEP || '0').toString(), newPrefix);
-            const ostep = replacePrefix((row.OSTEP || '0').toString(), newPrefix);
+            
+            let mstep = '0';
+            let ostep = '0';
+            const mstepRaw = row.MSTEP || '';
+            const ostepRaw = row.OSTEP || '';
+            
+            const rtype2Val = rtype2.trim().toUpperCase();
+            const isMstepMissing = !mstepRaw || mstepRaw.toString().trim() === '0';
+            
+            const getGrpFromOstep = (ostepVal) => {
+                if (!ostepVal) return '';
+                const s = ostepVal.toString().trim();
+                if (s.length === 3) return s;
+                return '';
+            };
+            const sourceGrp = getGrpFromOstep(ostepRaw);
+
+            ostep = formatStepOrOstep(ostepRaw, prefixToUse, dbType, row.SECTION, sourceGrp);
+
+            if (rtype2Val === 'R' || rtype2Val === 'B') {
+                if (isMstepMissing && sourceGrp) {
+                    const selectedDB = knowledgeBase[dbType] || knowledgeBase.VNKR;
+                    let targetGrp = selectedDB.repairFrequencyMap.get(sourceGrp);
+                    if (!targetGrp) {
+                        const localSelfMatch = rawData.find(r => r.ROUTE === route && r.GRP && r.GRP.toString().trim() === sourceGrp);
+                        targetGrp = localSelfMatch ? sourceGrp : sourceGrp;
+                    }
+                    mstep = formatStepOrOstep('', prefixToUse, dbType, row.SECTION, targetGrp);
+                } else {
+                    mstep = formatStepOrOstep(mstepRaw, prefixToUse, dbType, row.SECTION, null);
+                }
+            } else {
+                mstep = '0';
+            }
+            
             const section = (row.SECTION || '').toString();
             const grp = (row.GRP || '').toString();
             const stepflag = (row.STEPFLAG || '').toString();
@@ -337,24 +436,32 @@ function generateSQL() {
         const alphaSeq = ['Z', 'Y', 'X', 'V', 'W', 'M', 'N', 'J', 'K', 'L'];
         
         rawData.forEach((row, rowIndex) => {
-            const stepValue = row.STEP || row.STEPNM;
-            if (!row.RIDX || !stepValue || !row.ROUTE || !row.REPAIR) return;
+            if (!row.RIDX || !row.ROUTE || !row.REPAIR) return;
+            let stepValue = row.STEP || row.STEPNM || '';
+            stepValue = formatStepOrOstep(stepValue, prefixToUse, dbType, row.SECTION, row.GRP);
 
             sqlEntryCount++;
             sqlOutput += `-- No: ${sqlEntryCount}\n`;
-            const originalRidx = parseInt(row.RIDX);
+            const originalRidxVal = parseInt(row.RIDX);
             const originalStep = stepValue.toString().trim();
             const route = row.ROUTE;
-            const ruleKey = `${route}_${originalRidx}`;
-
-            if (taoRepairMap.has(ruleKey)) {
-                sqlOutput += `-- Rule from TaoRepair\n${taoRepairMap.get(ruleKey)}\n\n`;
+            const originalRidx = correctedRidxMap.get(`${route}_${originalRidxVal}`) || originalRidxVal;
+            // Check if there is custom SQL in TaoRepair for this step using the original RIDX
+            const checkKey = `${route}_${originalRidxVal * 10000 + 1}`;
+            if (taoRepairMap.has(checkKey)) {
+                let customSql = "";
+                let offset = 1;
+                while (taoRepairMap.has(`${route}_${originalRidxVal * 10000 + offset}`)) {
+                    customSql += taoRepairMap.get(`${route}_${originalRidxVal * 10000 + offset}`) + "\n";
+                    offset++;
+                }
+                sqlOutput += `-- Rule from TaoRepair\n${customSql}\n`;
                 return;
             }
 
             const originalSection = (row.SECTION || "").toString().trim();
             const originalPrefix = originalStep.length >= 4 ? originalStep.slice(0, 4) : "MHBI";
-            const basePrefix = (newPrefix && newPrefix.length === 4) ? newPrefix : originalPrefix;
+            const basePrefix = (prefixToUse && prefixToUse.length === 4) ? prefixToUse : originalPrefix;
 
             const getPrefix = (grp, fallback) => {
                 const sec = grpToSectionMap.get(grp);
